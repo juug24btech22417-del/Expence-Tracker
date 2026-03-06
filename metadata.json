@@ -1,0 +1,5 @@
+{
+  "name": "Glass Ledger",
+  "description": "A minimal, glassmorphism-inspired expense tracker with AI-powered voice logging and visual analytics.",
+  "requestFramePermissions": ["microphone"]
+}
