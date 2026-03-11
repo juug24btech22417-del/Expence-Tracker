@@ -47,7 +47,7 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <GlassCard className="h-[350px]">
-        <h3 className="mb-4 text-xs font-medium uppercase tracking-wider text-black/40">Spending by Category</h3>
+        <h3 className="mb-4 text-xs font-medium uppercase tracking-wider text-white/40">Spending by Category</h3>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -66,33 +66,33 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
               ))}
             </Pie>
             <Tooltip
-              contentStyle={{ backgroundColor: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', color: '#000' }}
-              itemStyle={{ color: '#000', fontSize: '12px' }}
+              contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', color: '#fff' }}
+              itemStyle={{ color: '#fff', fontSize: '12px' }}
               formatter={(value: number) => [`${CURRENCY_SYMBOL}${value.toFixed(2)}`, 'Amount']}
             />
             <Legend 
               verticalAlign="bottom" 
               height={36} 
               iconType="circle"
-              wrapperStyle={{ fontSize: '10px', paddingTop: '20px' }}
+              wrapperStyle={{ fontSize: '10px', paddingTop: '20px', color: 'rgba(255,255,255,0.6)' }}
             />
           </PieChart>
         </ResponsiveContainer>
       </GlassCard>
 
       <GlassCard className="h-[350px]">
-        <h3 className="mb-4 text-xs font-medium uppercase tracking-wider text-black/40">Daily Spending (Last 7 Days)</h3>
+        <h3 className="mb-4 text-xs font-medium uppercase tracking-wider text-white/40">Daily Spending (Last 7 Days)</h3>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={dailyData}>
-            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(0,0,0,0.4)', fontSize: 10 }} />
+            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
             <YAxis hide />
             <Tooltip
-              cursor={{ fill: 'rgba(0,0,0,0.05)' }}
-              contentStyle={{ backgroundColor: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', color: '#000' }}
-              itemStyle={{ color: '#000', fontSize: '12px' }}
+              cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+              contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', color: '#fff' }}
+              itemStyle={{ color: '#fff', fontSize: '12px' }}
               formatter={(value: number) => [`${CURRENCY_SYMBOL}${value.toFixed(2)}`, 'Amount']}
             />
-            <Bar dataKey="amount" fill="#000" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="amount" fill="#fff" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </GlassCard>

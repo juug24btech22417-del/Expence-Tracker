@@ -11,12 +11,12 @@ export const GlassCard: React.FC<GlassCardProps> = ({ children, className, hover
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-3xl border border-white/40 bg-white/10 p-6 backdrop-blur-3xl transition-all duration-300 shadow-xl shadow-black/5',
-        hover && 'hover:bg-white/20 hover:shadow-2xl hover:shadow-black/10 hover:-translate-y-0.5',
+        'relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-3xl transition-all duration-300 shadow-2xl shadow-black/50',
+        hover && 'hover:bg-white/10 hover:border-white/20 hover:shadow-black/70 hover:-translate-y-0.5',
         className
       )}
     >
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white/30 to-transparent opacity-50" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white/10 to-transparent opacity-50" />
       {children}
     </div>
   );

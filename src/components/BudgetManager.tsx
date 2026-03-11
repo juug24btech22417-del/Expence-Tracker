@@ -41,7 +41,7 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({ budgets, categorie
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 rounded-xl border border-black/10 bg-black/5 px-4 py-2 text-xs font-medium text-black/60 transition-all hover:bg-black/10 hover:text-black"
+        className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-white/60 transition-all hover:bg-white/10 hover:text-white"
       >
         <Edit2 size={14} />
         Manage Budgets
@@ -63,10 +63,10 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({ budgets, categorie
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className="relative w-full max-w-md"
             >
-              <GlassCard className="bg-white/40 border-black/5 backdrop-blur-3xl">
+              <GlassCard className="bg-white/5 border-white/10 backdrop-blur-3xl">
                 <div className="mb-6 flex items-center justify-between">
-                  <h2 className="text-xl font-medium text-zinc-900">Manage Budgets</h2>
-                  <button onClick={() => setIsOpen(false)} className="text-black/60 hover:text-black">
+                  <h2 className="text-xl font-medium text-white">Manage Budgets</h2>
+                  <button onClick={() => setIsOpen(false)} className="text-white/60 hover:text-white">
                     <X size={20} />
                   </button>
                 </div>
@@ -75,26 +75,26 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({ budgets, categorie
                   {tempCategories.map((cat) => {
                     const budget = tempBudgets.find(b => b.categoryId === cat.id);
                     return (
-                      <div key={cat.id} className="space-y-3 rounded-2xl border border-black/5 bg-black/2 p-4">
+                      <div key={cat.id} className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-4">
                         <div className="space-y-1">
-                          <label className="text-[10px] uppercase tracking-widest text-black/40">Category Name</label>
+                          <label className="text-[10px] uppercase tracking-widest text-white/40">Category Name</label>
                           <input
                             type="text"
                             value={cat.name}
                             onChange={(e) => handleUpdateCategoryName(cat.id, e.target.value)}
-                            className="w-full rounded-xl border border-black/10 bg-black/5 p-2 text-sm text-zinc-900 outline-none focus:border-black/30"
+                            className="w-full rounded-xl border border-white/10 bg-white/5 p-2 text-sm text-white outline-none focus:border-white/30"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] uppercase tracking-widest text-black/40">Monthly Budget</label>
+                          <label className="text-[10px] uppercase tracking-widest text-white/40">Monthly Budget</label>
                           <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40">{CURRENCY_SYMBOL}</span>
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">{CURRENCY_SYMBOL}</span>
                             <input
                               type="number"
                               value={budget?.amount || ''}
                               onChange={(e) => handleUpdateBudget(cat.id, Number(e.target.value))}
                               placeholder="0"
-                              className="w-full rounded-xl border border-black/10 bg-black/5 p-2 pl-8 text-sm text-zinc-900 outline-none focus:border-black/30"
+                              className="w-full rounded-xl border border-white/10 bg-white/5 p-2 pl-8 text-sm text-white outline-none focus:border-white/30"
                             />
                           </div>
                         </div>
@@ -105,7 +105,7 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({ budgets, categorie
 
                 <button
                   onClick={handleSave}
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-black py-3 font-medium text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 font-medium text-black transition-opacity hover:opacity-90 active:scale-[0.98]"
                 >
                   <Save size={18} />
                   Save Changes

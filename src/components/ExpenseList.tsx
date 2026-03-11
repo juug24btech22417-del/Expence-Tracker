@@ -43,17 +43,17 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, 
                     style={{ backgroundColor: `${category.color}40`, border: `1px solid ${category.color}` }}
                   />
                   <div>
-                    <p className="text-sm font-medium text-zinc-900">{expense.description}</p>
-                    <p className="text-[10px] uppercase tracking-widest text-black/40">
+                    <p className="text-sm font-medium text-white">{expense.description}</p>
+                    <p className="text-[10px] uppercase tracking-widest text-white/40">
                       {category.name} • {format(new Date(expense.date), 'MMM d, h:mm a')}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <p className="text-lg font-light text-zinc-900">-{CURRENCY_SYMBOL}{expense.amount.toFixed(2)}</p>
+                  <p className="text-lg font-light text-white">-{CURRENCY_SYMBOL}{expense.amount.toFixed(2)}</p>
                   <button
                     onClick={() => onDelete(expense.id)}
-                    className="opacity-0 transition-opacity group-hover:opacity-100 text-black/40 hover:text-red-600"
+                    className="opacity-0 transition-opacity group-hover:opacity-100 text-white/40 hover:text-red-400"
                   >
                     <Trash2 size={16} />
                   </button>

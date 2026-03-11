@@ -41,30 +41,30 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({ expenses, budget
                   className="h-2 w-2 rounded-full" 
                   style={{ backgroundColor: category.color }} 
                 />
-                <span className="text-sm font-medium text-zinc-900">{category.name}</span>
+                <span className="text-sm font-medium text-white">{category.name}</span>
               </div>
-              <span className="text-xs text-black/40">
+              <span className="text-xs text-white/40">
                 {CURRENCY_SYMBOL}{spent.toFixed(0)} / {CURRENCY_SYMBOL}{budget.amount.toFixed(0)}
               </span>
             </div>
             
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/5">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${percent}%` }}
                 className="h-full rounded-full"
                 style={{ 
-                  backgroundColor: isOver ? '#DC2626' : category.color,
-                  boxShadow: `0 0 10px ${isOver ? '#DC2626' : category.color}40`
+                  backgroundColor: isOver ? '#ef4444' : category.color,
+                  boxShadow: `0 0 10px ${isOver ? '#ef4444' : category.color}40`
                 }}
               />
             </div>
 
             <div className="mt-2 flex justify-between text-[10px] uppercase tracking-wider">
-              <span className={isOver ? 'text-red-600' : 'text-black/40'}>
+              <span className={isOver ? 'text-red-400' : 'text-white/40'}>
                 {isOver ? 'Over Budget' : `${percent.toFixed(0)}% spent`}
               </span>
-              <span className="text-black/40">
+              <span className="text-white/40">
                 {remaining >= 0 ? `${CURRENCY_SYMBOL}${remaining.toFixed(0)} left` : `${CURRENCY_SYMBOL}${Math.abs(remaining).toFixed(0)} over`}
               </span>
             </div>
