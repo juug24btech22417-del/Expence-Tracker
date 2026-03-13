@@ -1,35 +1,42 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { CategoryId } from "../types";
 
+const parseJSONResponse = (text: string) => {
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```json')) cleaned = cleaned.substring(7);
+  else if (cleaned.startsWith('```')) cleaned = cleaned.substring(3);
+  if (cleaned.endsWith('```')) cleaned = cleaned.substring(0, cleaned.length - 3);
+  return JSON.parse(cleaned.trim());
+};
+
+const expenseSchema = {
+  type: Type.OBJECT,
+  properties: {
+    amount: { type: Type.NUMBER },
+    category: { type: Type.STRING, description: "The likely category name (e.g. Food, Transport)" },
+    description: { type: Type.STRING }
+  },
+  required: ["amount", "category", "description"]
+};
+
 export const parseExpenseWithAI = async (text: string, travelMode: boolean = false): Promise<{ amount: number; category: string; description: string } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
   try {
     const travelPrompt = travelMode 
-      ? "TRAVEL MODE ACTIVE: The user is traveling. If the currency mentioned is foreign, you MUST use the Google Search tool to find the exact current exchange rate for that currency to INR (Indian Rupee), and convert the amount to INR. Mention the original currency and the exchange rate used in the description." 
+      ? "TRAVEL MODE ACTIVE: The user is traveling. If the currency mentioned is foreign, you MUST use the Google Search tool to find the exact current exchange rate for that currency to INR (Indian Rupee), and convert the amount to INR. Mention the original currency and the exchange rate used in the description. CRITICAL: You must return ONLY a valid JSON object with exactly these keys: 'amount' (number), 'category' (string), and 'description' (string). Do not include any markdown formatting like ```json." 
       : "";
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Extract expense details from this text: "${text}". ${travelPrompt}
       Return JSON format.`,
-      config: {
-        ...(travelMode ? { tools: [{ googleSearch: {} }] } : {}),
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            amount: { type: Type.NUMBER },
-            category: { type: Type.STRING, description: "The likely category name (e.g. Food, Transport)" },
-            description: { type: Type.STRING }
-          },
-          required: ["amount", "category", "description"]
-        }
-      }
+      config: travelMode 
+        ? { tools: [{ googleSearch: {} }] }
+        : { responseMimeType: "application/json", responseSchema: expenseSchema }
     });
 
-    const result = JSON.parse(response.text);
-    return result;
+    return parseJSONResponse(response.text);
   } catch (error) {
     console.error("AI Parsing Error:", error);
     return null;
@@ -41,7 +48,7 @@ export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: str
   
   try {
     const travelPrompt = travelMode 
-      ? "TRAVEL MODE ACTIVE: The user is traveling. If the currency mentioned is foreign, you MUST use the Google Search tool to find the exact current exchange rate for that currency to INR (Indian Rupee), and convert the amount to INR. Mention the original currency and the exchange rate used in the description." 
+      ? "TRAVEL MODE ACTIVE: The user is traveling. If the currency mentioned is foreign, you MUST use the Google Search tool to find the exact current exchange rate for that currency to INR (Indian Rupee), and convert the amount to INR. Mention the original currency and the exchange rate used in the description. CRITICAL: You must return ONLY a valid JSON object with exactly these keys: 'amount' (number), 'category' (string), and 'description' (string). Do not include any markdown formatting like ```json." 
       : "";
 
     const response = await ai.models.generateContent({
@@ -57,23 +64,12 @@ export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: str
           text: `Extract expense details from this audio. ${travelPrompt} Return JSON format.`
         }
       ],
-      config: {
-        ...(travelMode ? { tools: [{ googleSearch: {} }] } : {}),
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            amount: { type: Type.NUMBER },
-            category: { type: Type.STRING, description: "The likely category name (e.g. Food, Transport)" },
-            description: { type: Type.STRING }
-          },
-          required: ["amount", "category", "description"]
-        }
-      }
+      config: travelMode 
+        ? { tools: [{ googleSearch: {} }] }
+        : { responseMimeType: "application/json", responseSchema: expenseSchema }
     });
 
-    const result = JSON.parse(response.text);
-    return result;
+    return parseJSONResponse(response.text);
   } catch (error) {
     console.error("AI Audio Parsing Error:", error);
     return null;
@@ -85,7 +81,7 @@ export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean
 
   try {
     const travelPrompt = travelMode 
-      ? "TRAVEL MODE ACTIVE: The user is traveling. If the receipt is in a foreign currency, you MUST use the Google Search tool to find the exact current exchange rate for that currency to INR (Indian Rupee), and convert the total to INR. Note the original currency and the exchange rate used in the description." 
+      ? "TRAVEL MODE ACTIVE: The user is traveling. If the receipt is in a foreign currency, you MUST use the Google Search tool to find the exact current exchange rate for that currency to INR (Indian Rupee), and convert the total to INR. Note the original currency and the exchange rate used in the description. CRITICAL: You must return ONLY a valid JSON object with exactly these keys: 'amount' (number), 'category' (string), and 'description' (string). Do not include any markdown formatting like ```json." 
       : "";
 
     const response = await ai.models.generateContent({
@@ -101,23 +97,12 @@ export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean
           text: `Extract total amount, category name, and a short description from this receipt. ${travelPrompt} Return JSON.`
         }
       ],
-      config: {
-        ...(travelMode ? { tools: [{ googleSearch: {} }] } : {}),
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            amount: { type: Type.NUMBER },
-            category: { type: Type.STRING },
-            description: { type: Type.STRING }
-          },
-          required: ["amount", "category", "description"]
-        }
-      }
+      config: travelMode 
+        ? { tools: [{ googleSearch: {} }] }
+        : { responseMimeType: "application/json", responseSchema: expenseSchema }
     });
 
-    const result = JSON.parse(response.text);
-    return result;
+    return parseJSONResponse(response.text);
   } catch (error) {
     console.error("AI Receipt Scan Error:", error);
     return null;

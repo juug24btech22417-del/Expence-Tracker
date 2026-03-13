@@ -38,9 +38,11 @@ export default function App() {
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   const [isTravelMode, setIsTravelMode] = useState(false);
   const [isSplitBillOpen, setIsSplitBillOpen] = useState(false);
+  const [budgetAlert, setBudgetAlert] = useState<{ message: string, type: 'warning' | 'danger' } | null>(null);
 
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const audioChunksRef = React.useRef<Blob[]>([]);
+  const recordingStartTimeRef = React.useRef<number>(0);
 
   useEffect(() => {
     localStorage.setItem('expenses', JSON.stringify(expenses));
@@ -60,6 +62,32 @@ export default function App() {
       ...data,
       date: new Date().toISOString(),
     };
+
+    // Check budget
+    const categoryBudget = budgets.find(b => b.categoryId === data.categoryId);
+    if (categoryBudget) {
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      
+      const categorySpent = expenses
+        .filter(e => {
+          const d = new Date(e.date);
+          return e.categoryId === data.categoryId && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+        })
+        .reduce((sum, e) => sum + e.amount, 0);
+        
+      const newTotal = categorySpent + data.amount;
+      const categoryName = categories.find(c => c.id === data.categoryId)?.name || data.categoryId;
+
+      if (newTotal > categoryBudget.amount) {
+        setBudgetAlert({ message: `You have exceeded your budget for ${categoryName}!`, type: 'danger' });
+        setTimeout(() => setBudgetAlert(null), 5000);
+      } else if (newTotal >= categoryBudget.amount * 0.8) {
+        setBudgetAlert({ message: `You are approaching your budget limit for ${categoryName}.`, type: 'warning' });
+        setTimeout(() => setBudgetAlert(null), 5000);
+      }
+    }
+
     setExpenses((prev) => [newExpense, ...prev]);
   };
 
@@ -90,6 +118,16 @@ export default function App() {
       };
 
       mediaRecorder.onstop = async () => {
+        const duration = Date.now() - recordingStartTimeRef.current;
+        
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach(track => track.stop());
+
+        if (duration < 1000) {
+          // Recording too short, ignore
+          return;
+        }
+
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         
         // Convert to base64
@@ -113,12 +151,10 @@ export default function App() {
             alert("Couldn't understand that. Try again!");
           }
         };
-        
-        // Stop all tracks to release microphone
-        stream.getTracks().forEach(track => track.stop());
       };
 
       mediaRecorder.start();
+      recordingStartTimeRef.current = Date.now();
       setIsListening(true);
     } catch (err) {
       console.error("Error accessing microphone:", err);
@@ -175,6 +211,21 @@ export default function App() {
           className="absolute inset-0"
         />
       </div>
+
+      {/* Budget Alert Toast */}
+      <AnimatePresence>
+        {budgetAlert && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/10 bg-black/80 px-6 py-3 shadow-2xl backdrop-blur-xl"
+          >
+            <div className={cn("h-2 w-2 rounded-full", budgetAlert.type === 'danger' ? "bg-red-500" : "bg-yellow-500")} />
+            <p className="text-sm font-medium text-white">{budgetAlert.message}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main className="mx-auto max-w-2xl px-6 pt-12 pb-32">
         {/* Header */}

@@ -18,6 +18,7 @@ export const SplitBillModal: React.FC<SplitBillModalProps> = ({ isOpen, setIsOpe
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordingStartTimeRef = useRef<number>(0);
 
   const handleProcessText = async () => {
     if (!input.trim()) return;
@@ -47,6 +48,13 @@ export const SplitBillModal: React.FC<SplitBillModalProps> = ({ isOpen, setIsOpe
       };
 
       mediaRecorder.onstop = async () => {
+        const duration = Date.now() - recordingStartTimeRef.current;
+        stream.getTracks().forEach(track => track.stop());
+
+        if (duration < 1000) {
+          return; // Ignore if less than 1 second
+        }
+
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
@@ -57,10 +65,10 @@ export const SplitBillModal: React.FC<SplitBillModalProps> = ({ isOpen, setIsOpe
           setResult(res);
           setIsLoading(false);
         };
-        stream.getTracks().forEach(track => track.stop());
       };
 
       mediaRecorder.start();
+      recordingStartTimeRef.current = Date.now();
       setIsListening(true);
     } catch (err) {
       console.error("Error accessing microphone:", err);
