@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Budget, CategoryDefinition, CategoryId } from '../types';
 import { GlassCard } from './GlassCard';
-import { CURRENCY_SYMBOL } from '../constants';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { X, Plus, Save, Edit2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -13,6 +13,7 @@ interface BudgetManagerProps {
 }
 
 export const BudgetManager: React.FC<BudgetManagerProps> = ({ budgets, categories, onUpdateBudgets, onUpdateCategories }) => {
+  const { currencySymbol } = useCurrency();
   const [isOpen, setIsOpen] = useState(false);
   const [tempBudgets, setTempBudgets] = useState<Budget[]>(budgets);
   const [tempCategories, setTempCategories] = useState<CategoryDefinition[]>(categories);
@@ -88,7 +89,7 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({ budgets, categorie
                         <div className="space-y-1">
                           <label className="text-[10px] uppercase tracking-widest text-white/40">Monthly Budget</label>
                           <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">{CURRENCY_SYMBOL}</span>
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">{currencySymbol}</span>
                             <input
                               type="number"
                               value={budget?.amount || ''}

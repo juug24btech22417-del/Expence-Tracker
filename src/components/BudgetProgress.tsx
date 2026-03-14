@@ -1,7 +1,7 @@
 import React from 'react';
 import { Expense, Budget, CategoryDefinition, CategoryId } from '../types';
 import { GlassCard } from './GlassCard';
-import { CURRENCY_SYMBOL } from '../constants';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { motion } from 'motion/react';
 
 interface BudgetProgressProps {
@@ -11,6 +11,7 @@ interface BudgetProgressProps {
 }
 
 export const BudgetProgress: React.FC<BudgetProgressProps> = ({ expenses, budgets, categories }) => {
+  const { currencySymbol } = useCurrency();
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
 
@@ -44,7 +45,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({ expenses, budget
                 <span className="text-sm font-medium text-white">{category.name}</span>
               </div>
               <span className="text-xs text-white/40">
-                {CURRENCY_SYMBOL}{spent.toFixed(0)} / {CURRENCY_SYMBOL}{budget.amount.toFixed(0)}
+                {currencySymbol}{spent.toFixed(0)} / {currencySymbol}{budget.amount.toFixed(0)}
               </span>
             </div>
             
@@ -65,7 +66,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({ expenses, budget
                 {isOver ? 'Over Budget' : `${percent.toFixed(0)}% spent`}
               </span>
               <span className="text-white/40">
-                {remaining >= 0 ? `${CURRENCY_SYMBOL}${remaining.toFixed(0)} left` : `${CURRENCY_SYMBOL}${Math.abs(remaining).toFixed(0)} over`}
+                {remaining >= 0 ? `${currencySymbol}${remaining.toFixed(0)} left` : `${currencySymbol}${Math.abs(remaining).toFixed(0)} over`}
               </span>
             </div>
           </GlassCard>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, Camera, LayoutDashboard, List, PieChart as ChartIcon, Sparkles, Wallet, Plane, Users, Square } from 'lucide-react';
+import { Mic, Camera, LayoutDashboard, List, PieChart as ChartIcon, Sparkles, Wallet, Plane, Users, Square, Settings } from 'lucide-react';
 import { Expense, CategoryId, Budget, CategoryDefinition, DEFAULT_CATEGORIES } from './types';
 import { GlassCard } from './components/GlassCard';
 import { ExpenseForm } from './components/ExpenseForm';
@@ -13,9 +13,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { parseExpenseWithAI, scanReceiptWithAI, parseAudioExpenseWithAI } from './services/geminiService';
 import { Waves } from './components/Waves';
 import { cn } from './utils';
-import { CURRENCY_SYMBOL } from './constants';
+import { useCurrency } from './contexts/CurrencyContext';
+import { CURRENCIES } from './constants';
 
 export default function App() {
+  const { baseCurrency, setBaseCurrency, currencySymbol } = useCurrency();
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('expenses');
     return saved ? JSON.parse(saved) : [];
@@ -38,6 +40,7 @@ export default function App() {
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   const [isTravelMode, setIsTravelMode] = useState(false);
   const [isSplitBillOpen, setIsSplitBillOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [budgetAlert, setBudgetAlert] = useState<{ message: string, type: 'warning' | 'danger' } | null>(null);
 
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
@@ -137,7 +140,7 @@ export default function App() {
           const base64Audio = (reader.result as string).split(',')[1];
           
           setIsProcessingVoice(true);
-          const result = await parseAudioExpenseWithAI(base64Audio, audioBlob.type, isTravelMode);
+          const result = await parseAudioExpenseWithAI(base64Audio, audioBlob.type, isTravelMode, baseCurrency);
           setIsProcessingVoice(false);
 
           if (result) {
@@ -174,7 +177,7 @@ export default function App() {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
-        const result = await scanReceiptWithAI(base64, isTravelMode);
+        const result = await scanReceiptWithAI(base64, isTravelMode, baseCurrency);
         setIsScanning(false);
         if (result) {
           const categoryId = categories.find(c => c.name.toLowerCase() === (result as any).category.toLowerCase())?.id || 'other';
@@ -273,14 +276,79 @@ export default function App() {
             >
               <Camera size={18} className={isScanning ? 'animate-pulse text-emerald-400' : ''} />
             </button>
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition-all hover:bg-white/10 hover:text-white"
+              title="Settings"
+            >
+              <Settings size={18} />
+            </button>
           </div>
         </header>
+
+        {/* Settings Modal */}
+        <AnimatePresence>
+          {isSettingsOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsSettingsOpen(false)}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-black/80 p-6 shadow-2xl backdrop-blur-xl"
+              >
+                <h3 className="mb-6 text-xl font-light text-white">Settings</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40">
+                      Base Currency
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {CURRENCIES.map((c) => (
+                        <button
+                          key={c.code}
+                          onClick={() => setBaseCurrency(c.code)}
+                          className={cn(
+                            "rounded-xl border p-3 text-center transition-all",
+                            baseCurrency === c.code
+                              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                              : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                          )}
+                        >
+                          <span className="block text-lg font-light">{c.symbol}</span>
+                          <span className="mt-1 block text-[10px] uppercase tracking-wider">{c.code}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs text-white/40">
+                      Changing the base currency will apply to all new expenses and AI conversions.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsSettingsOpen(false)}
+                  className="mt-8 w-full rounded-xl bg-white/10 py-3 text-sm font-medium text-white transition-colors hover:bg-white/20"
+                >
+                  Done
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         {/* Hero Card */}
         <GlassCard className="mb-12 py-10 text-center">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/40">Total Balance Spent</p>
           <h2 className="mt-2 text-6xl font-extralight tracking-tighter">
-            <span className="text-white/40">{CURRENCY_SYMBOL}</span>
+            <span className="text-white/40">{currencySymbol}</span>
             {totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </h2>
           <div className="mt-8 flex justify-center gap-8">
@@ -292,7 +360,7 @@ export default function App() {
             <div className="text-center">
               <p className="text-[10px] uppercase tracking-widest text-white/40">Daily Avg</p>
               <p className="text-lg font-light">
-                {CURRENCY_SYMBOL}{(totalSpent / (expenses.length || 1)).toFixed(2)}
+                {currencySymbol}{(totalSpent / (expenses.length || 1)).toFixed(2)}
               </p>
             </div>
           </div>

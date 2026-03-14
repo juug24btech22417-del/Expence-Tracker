@@ -4,7 +4,7 @@ import { GlassCard } from './GlassCard';
 import { format } from 'date-fns';
 import { Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CURRENCY_SYMBOL } from '../constants';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -13,6 +13,7 @@ interface ExpenseListProps {
 }
 
 export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, onDelete }) => {
+  const { currencySymbol } = useCurrency();
   const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   if (expenses.length === 0) {
@@ -50,7 +51,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, 
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <p className="text-lg font-light text-white">-{CURRENCY_SYMBOL}{expense.amount.toFixed(2)}</p>
+                  <p className="text-lg font-light text-white">-{currencySymbol}{expense.amount.toFixed(2)}</p>
                   <button
                     onClick={() => onDelete(expense.id)}
                     className="opacity-0 transition-opacity group-hover:opacity-100 text-white/40 hover:text-red-400"

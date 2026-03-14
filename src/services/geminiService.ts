@@ -24,28 +24,37 @@ const parseJSONResponse = (text: string) => {
   }
 };
 
-const expenseSchema = {
+const getExpenseSchema = (baseCurrency: string) => ({
   type: Type.OBJECT,
   properties: {
     amount: { type: Type.NUMBER },
-    currency: { type: Type.STRING, description: "The currency code (e.g., USD, EUR, INR). Default to INR if not specified." },
+    currency: { type: Type.STRING, description: `The ORIGINAL currency code (e.g., USD, EUR). Default to ${baseCurrency} if not specified.` },
     category: { type: Type.STRING, description: "The likely category name (e.g. Food, Transport)" },
-    description: { type: Type.STRING, description: "A very short, concise description of the expense (max 3-5 words)." }
+    description: { type: Type.STRING, description: "A very short, concise description of the expense. MUST be 3 words or less. DO NOT include currency conversion details." }
   },
   required: ["amount", "currency", "category", "description"]
-};
+});
 
-const convertCurrencyIfNeeded = async (ai: GoogleGenAI, expense: any): Promise<any> => {
-  if (!expense || !expense.currency || expense.currency.toUpperCase() === 'INR') {
+const convertCurrencyIfNeeded = async (ai: GoogleGenAI, expense: any, baseCurrency: string = 'INR'): Promise<any> => {
+  if (!expense || !expense.currency || expense.currency.toUpperCase() === baseCurrency.toUpperCase()) {
     return expense;
   }
 
   try {
     const conversionResponse = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Convert ${expense.amount} ${expense.currency} to INR using the current exchange rate. Return ONLY a JSON object with 'amount' (the converted amount in INR as a number) and 'rateInfo' (a very short string like "1 USD = 83 INR").`,
+      contents: `Convert ${expense.amount} ${expense.currency} to ${baseCurrency} using the current exchange rate. Return ONLY a JSON block with 'amount' (the converted amount in ${baseCurrency} as a number) and 'rateInfo' (a very short string like "1 USD = 83 INR"). Do not include any other text.`,
       config: {
-        tools: [{ googleSearch: {} }]
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            amount: { type: Type.NUMBER },
+            rateInfo: { type: Type.STRING }
+          },
+          required: ["amount", "rateInfo"]
+        }
       }
     });
 
@@ -63,24 +72,24 @@ const convertCurrencyIfNeeded = async (ai: GoogleGenAI, expense: any): Promise<a
   return expense;
 };
 
-export const parseExpenseWithAI = async (text: string, travelMode: boolean = false): Promise<{ amount: number; category: string; description: string } | null> => {
+export const parseExpenseWithAI = async (text: string, travelMode: boolean = false, baseCurrency: string = 'INR'): Promise<{ amount: number; category: string; description: string } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
   try {
     const travelPrompt = travelMode 
-      ? "TRAVEL MODE ACTIVE: Identify the currency mentioned. If no currency is mentioned, assume INR." 
-      : "Assume the currency is INR.";
+      ? `TRAVEL MODE ACTIVE: Identify the ORIGINAL currency mentioned. If no currency is mentioned, assume ${baseCurrency}.` 
+      : `Assume the currency is ${baseCurrency}.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Extract expense details from this text: "${text}". ${travelPrompt}
-      Return JSON format. Keep the description very short (max 3 words).`,
-      config: { responseMimeType: "application/json", responseSchema: expenseSchema }
+      Return JSON format. Keep the description very short (max 3 words). CRITICAL: DO NOT perform any currency conversion yourself. Extract the EXACT original amount and currency from the text.`,
+      config: { responseMimeType: "application/json", responseSchema: getExpenseSchema(baseCurrency) }
     });
 
-    let result = JSON.parse(response.text);
+    let result = parseJSONResponse(response.text);
     if (travelMode) {
-      result = await convertCurrencyIfNeeded(ai, result);
+      result = await convertCurrencyIfNeeded(ai, result, baseCurrency);
     }
     return result;
   } catch (error) {
@@ -89,13 +98,13 @@ export const parseExpenseWithAI = async (text: string, travelMode: boolean = fal
   }
 };
 
-export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: string, travelMode: boolean = false): Promise<{ amount: number; category: string; description: string } | null> => {
+export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: string, travelMode: boolean = false, baseCurrency: string = 'INR'): Promise<{ amount: number; category: string; description: string } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
   try {
     const travelPrompt = travelMode 
-      ? "TRAVEL MODE ACTIVE: Identify the currency mentioned. If no currency is mentioned, assume INR." 
-      : "Assume the currency is INR.";
+      ? `TRAVEL MODE ACTIVE: Identify the ORIGINAL currency mentioned. If no currency is mentioned, assume ${baseCurrency}.` 
+      : `Assume the currency is ${baseCurrency}.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -107,15 +116,15 @@ export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: str
           }
         },
         {
-          text: `Extract expense details from this audio. ${travelPrompt} Return JSON format. Keep the description very short (max 3 words).`
+          text: `Extract expense details from this audio. ${travelPrompt} Return JSON format. Keep the description very short (max 3 words). CRITICAL: DO NOT perform any currency conversion yourself. Extract the EXACT original amount and currency from the audio.`
         }
       ],
-      config: { responseMimeType: "application/json", responseSchema: expenseSchema }
+      config: { responseMimeType: "application/json", responseSchema: getExpenseSchema(baseCurrency) }
     });
 
-    let result = JSON.parse(response.text);
+    let result = parseJSONResponse(response.text);
     if (travelMode) {
-      result = await convertCurrencyIfNeeded(ai, result);
+      result = await convertCurrencyIfNeeded(ai, result, baseCurrency);
     }
     return result;
   } catch (error) {
@@ -124,13 +133,13 @@ export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: str
   }
 };
 
-export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean = false): Promise<{ amount: number; category: string; description: string } | null> => {
+export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean = false, baseCurrency: string = 'INR'): Promise<{ amount: number; category: string; description: string } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   try {
     const travelPrompt = travelMode 
-      ? "TRAVEL MODE ACTIVE: Identify the currency on the receipt. If no currency is visible, assume INR." 
-      : "Assume the currency is INR.";
+      ? `TRAVEL MODE ACTIVE: Identify the ORIGINAL currency. If no currency is visible, assume ${baseCurrency}.` 
+      : `Assume the currency is ${baseCurrency}.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -142,15 +151,15 @@ export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean
           }
         },
         {
-          text: `Extract total amount, category name, and a very short description (max 3 words) from this receipt. ${travelPrompt} Return JSON.`
+          text: `Extract total amount, category name, and a very short description (max 3 words) from this receipt. ${travelPrompt} Return JSON. CRITICAL: DO NOT perform any currency conversion yourself. Extract the EXACT original amount and currency from the receipt.`
         }
       ],
-      config: { responseMimeType: "application/json", responseSchema: expenseSchema }
+      config: { responseMimeType: "application/json", responseSchema: getExpenseSchema(baseCurrency) }
     });
 
-    let result = JSON.parse(response.text);
+    let result = parseJSONResponse(response.text);
     if (travelMode) {
-      result = await convertCurrencyIfNeeded(ai, result);
+      result = await convertCurrencyIfNeeded(ai, result, baseCurrency);
     }
     return result;
   } catch (error) {
@@ -159,13 +168,13 @@ export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean
   }
 };
 
-export const splitBillWithAI = async (text: string): Promise<{ total: number; splits: { person: string; amount: number; items: string[] }[] } | null> => {
+export const splitBillWithAI = async (text: string, baseCurrency: string = 'INR'): Promise<{ total: number; splits: { person: string; amount: number; items: string[] }[] } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Analyze this shared bill scenario and divide the costs fairly among the people mentioned. If items are shared, split their cost equally among the sharers. Assume the currency is INR (₹) unless specified otherwise. Text: "${text}"`,
+      contents: `Analyze this shared bill scenario and divide the costs fairly among the people mentioned. If items are shared, split their cost equally among the sharers. Assume the currency is ${baseCurrency} unless specified otherwise. Text: "${text}"`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -193,14 +202,14 @@ export const splitBillWithAI = async (text: string): Promise<{ total: number; sp
       }
     });
 
-    return JSON.parse(response.text);
+    return parseJSONResponse(response.text);
   } catch (error) {
     console.error("AI Split Bill Error:", error);
     return null;
   }
 };
 
-export const splitBillAudioWithAI = async (base64Audio: string, mimeType: string): Promise<{ total: number; splits: { person: string; amount: number; items: string[] }[] } | null> => {
+export const splitBillAudioWithAI = async (base64Audio: string, mimeType: string, baseCurrency: string = 'INR'): Promise<{ total: number; splits: { person: string; amount: number; items: string[] }[] } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   try {
@@ -214,7 +223,7 @@ export const splitBillAudioWithAI = async (base64Audio: string, mimeType: string
           }
         },
         {
-          text: `Analyze this shared bill scenario from the audio and divide the costs fairly among the people mentioned. If items are shared, split their cost equally among the sharers. Assume the currency is INR (₹) unless specified otherwise.`
+          text: `Analyze this shared bill scenario from the audio and divide the costs fairly among the people mentioned. If items are shared, split their cost equally among the sharers. Assume the currency is ${baseCurrency} unless specified otherwise.`
         }
       ],
       config: {
@@ -244,14 +253,14 @@ export const splitBillAudioWithAI = async (base64Audio: string, mimeType: string
       }
     });
 
-    return JSON.parse(response.text);
+    return parseJSONResponse(response.text);
   } catch (error) {
     console.error("AI Split Bill Audio Error:", error);
     return null;
   }
 };
 
-export const splitBillReceiptWithAI = async (base64Image: string): Promise<{ total: number; splits: { person: string; amount: number; items: string[] }[] } | null> => {
+export const splitBillReceiptWithAI = async (base64Image: string, baseCurrency: string = 'INR'): Promise<{ total: number; splits: { person: string; amount: number; items: string[] }[] } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   try {
@@ -265,7 +274,7 @@ export const splitBillReceiptWithAI = async (base64Image: string): Promise<{ tot
           }
         },
         {
-          text: `Analyze this receipt and divide the costs fairly. If it's just a receipt with no people mentioned, assume it needs to be split equally among 2 people (Person A and Person B). If people are mentioned in handwriting or notes, use those. Assume the currency is INR (₹) unless specified otherwise.`
+          text: `Analyze this receipt and divide the costs fairly. If it's just a receipt with no people mentioned, assume it needs to be split equally among 2 people (Person A and Person B). If people are mentioned in handwriting or notes, use those. Assume the currency is ${baseCurrency} unless specified otherwise.`
         }
       ],
       config: {
@@ -295,22 +304,22 @@ export const splitBillReceiptWithAI = async (base64Image: string): Promise<{ tot
       }
     });
 
-    return JSON.parse(response.text);
+    return parseJSONResponse(response.text);
   } catch (error) {
     console.error("AI Split Bill Receipt Error:", error);
     return null;
   }
 };
 
-export const simulateWhatIf = async (scenario: string, expensesSummary: string): Promise<{ monthlySavings: number; yearlySavings: number; insights: string } | null> => {
+export const simulateWhatIf = async (scenario: string, expensesSummary: string, baseCurrency: string = 'INR'): Promise<{ monthlySavings: number; yearlySavings: number; insights: string } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `User's current monthly spending summary: ${expensesSummary}. 
+      contents: `User's current monthly spending summary in ${baseCurrency}: ${expensesSummary}. 
       Scenario: "${scenario}". 
-      Calculate the potential monthly and yearly savings if the user follows this scenario. Provide an encouraging insight on what this saved money could be used for (e.g., a vacation, investing).`,
+      Calculate the potential monthly and yearly savings in ${baseCurrency} if the user follows this scenario. Provide an encouraging insight on what this saved money could be used for (e.g., a vacation, investing).`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -325,7 +334,7 @@ export const simulateWhatIf = async (scenario: string, expensesSummary: string):
       }
     });
 
-    return JSON.parse(response.text);
+    return parseJSONResponse(response.text);
   } catch (error) {
     console.error("AI What-If Error:", error);
     return null;

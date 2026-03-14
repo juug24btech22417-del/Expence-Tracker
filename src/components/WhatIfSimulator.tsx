@@ -3,7 +3,7 @@ import { Sparkles, ArrowRight } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { simulateWhatIf } from '../services/geminiService';
 import { Expense, CategoryDefinition } from '../types';
-import { CURRENCY_SYMBOL } from '../constants';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 interface WhatIfSimulatorProps {
   expenses: Expense[];
@@ -11,6 +11,7 @@ interface WhatIfSimulatorProps {
 }
 
 export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ expenses, categories }) => {
+  const { currencySymbol, baseCurrency } = useCurrency();
   const [scenario, setScenario] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<{ monthlySavings: number; yearlySavings: number; insights: string } | null>(null);
@@ -29,10 +30,10 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ expenses, cate
     }, {} as Record<string, number>);
 
     const summary = Object.entries(categoryTotals)
-      .map(([name, total]) => `${name}: ${CURRENCY_SYMBOL}${total}`)
+      .map(([name, total]) => `${name}: ${currencySymbol}${total}`)
       .join(', ');
 
-    const res = await simulateWhatIf(scenario, summary);
+    const res = await simulateWhatIf(scenario, summary, baseCurrency);
     setResult(res);
     setIsLoading(false);
   };
@@ -75,11 +76,11 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ expenses, cate
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-center">
               <p className="text-[10px] uppercase tracking-widest text-emerald-400/60">Monthly Savings</p>
-              <p className="text-xl font-medium text-emerald-400">+{CURRENCY_SYMBOL}{result.monthlySavings.toFixed(0)}</p>
+              <p className="text-xl font-medium text-emerald-400">+{currencySymbol}{result.monthlySavings.toFixed(0)}</p>
             </div>
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-center">
               <p className="text-[10px] uppercase tracking-widest text-emerald-400/60">Yearly Savings</p>
-              <p className="text-xl font-medium text-emerald-400">+{CURRENCY_SYMBOL}{result.yearlySavings.toFixed(0)}</p>
+              <p className="text-xl font-medium text-emerald-400">+{currencySymbol}{result.yearlySavings.toFixed(0)}</p>
             </div>
           </div>
           <p className="text-sm text-white/90 leading-relaxed bg-white/5 p-4 rounded-xl border border-white/10">

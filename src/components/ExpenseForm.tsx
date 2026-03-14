@@ -4,7 +4,7 @@ import { CategoryDefinition, CategoryId } from '../types';
 import { GlassCard } from './GlassCard';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
-import { CURRENCY_SYMBOL } from '../constants';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 interface ExpenseFormProps {
   categories: CategoryDefinition[];
@@ -12,6 +12,7 @@ interface ExpenseFormProps {
 }
 
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) => {
+  const { currencySymbol } = useCurrency();
   const [isOpen, setIsOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState<CategoryId>(categories[0]?.id || 'other');
@@ -65,7 +66,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-white/40">Amount ({CURRENCY_SYMBOL})</label>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-white/40">Amount ({currencySymbol})</label>
                     <input
                       type="number"
                       step="0.01"

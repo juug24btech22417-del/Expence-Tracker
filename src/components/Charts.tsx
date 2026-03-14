@@ -2,7 +2,7 @@ import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, Legend } from 'recharts';
 import { Expense, CategoryDefinition, CategoryId } from '../types';
 import { GlassCard } from './GlassCard';
-import { CURRENCY_SYMBOL } from '../constants';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 interface ChartsProps {
   expenses: Expense[];
@@ -10,6 +10,7 @@ interface ChartsProps {
 }
 
 export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
+  const { currencySymbol } = useCurrency();
   const categoryData = expenses.reduce((acc, curr) => {
     // Handle both old string categories and new IDs for backward compatibility
     const id = curr.categoryId || (curr as any).category?.toLowerCase();
@@ -68,7 +69,7 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
             <Tooltip
               contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', color: '#fff' }}
               itemStyle={{ color: '#fff', fontSize: '12px' }}
-              formatter={(value: number) => [`${CURRENCY_SYMBOL}${value.toFixed(2)}`, 'Amount']}
+              formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, 'Amount']}
             />
             <Legend 
               verticalAlign="bottom" 
@@ -90,7 +91,7 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
               cursor={{ fill: 'rgba(255,255,255,0.05)' }}
               contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', color: '#fff' }}
               itemStyle={{ color: '#fff', fontSize: '12px' }}
-              formatter={(value: number) => [`${CURRENCY_SYMBOL}${value.toFixed(2)}`, 'Amount']}
+              formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, 'Amount']}
             />
             <Bar dataKey="amount" fill="#fff" radius={[4, 4, 0, 0]} />
           </BarChart>

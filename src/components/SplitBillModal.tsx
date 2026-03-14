@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Users, Sparkles, Mic, Camera, Square } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { splitBillWithAI, splitBillAudioWithAI, splitBillReceiptWithAI } from '../services/geminiService';
-import { CURRENCY_SYMBOL } from '../constants';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 interface SplitBillModalProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ interface SplitBillModalProps {
 }
 
 export const SplitBillModal: React.FC<SplitBillModalProps> = ({ isOpen, setIsOpen }) => {
+  const { currencySymbol, baseCurrency } = useCurrency();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -23,7 +24,7 @@ export const SplitBillModal: React.FC<SplitBillModalProps> = ({ isOpen, setIsOpe
   const handleProcessText = async () => {
     if (!input.trim()) return;
     setIsLoading(true);
-    const res = await splitBillWithAI(input);
+    const res = await splitBillWithAI(input, baseCurrency);
     setResult(res);
     setIsLoading(false);
   };
@@ -61,7 +62,7 @@ export const SplitBillModal: React.FC<SplitBillModalProps> = ({ isOpen, setIsOpe
         reader.onloadend = async () => {
           const base64Audio = (reader.result as string).split(',')[1];
           setIsLoading(true);
-          const res = await splitBillAudioWithAI(base64Audio, audioBlob.type);
+          const res = await splitBillAudioWithAI(base64Audio, audioBlob.type, baseCurrency);
           setResult(res);
           setIsLoading(false);
         };
@@ -88,7 +89,7 @@ export const SplitBillModal: React.FC<SplitBillModalProps> = ({ isOpen, setIsOpe
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
-        const res = await splitBillReceiptWithAI(base64);
+        const res = await splitBillReceiptWithAI(base64, baseCurrency);
         setResult(res);
         setIsLoading(false);
       };
@@ -181,7 +182,7 @@ export const SplitBillModal: React.FC<SplitBillModalProps> = ({ isOpen, setIsOpe
                 <div className="space-y-6">
                   <div className="text-center">
                     <p className="text-xs uppercase tracking-widest text-white/40">Total Bill</p>
-                    <p className="text-3xl font-light text-white">{CURRENCY_SYMBOL}{result.total.toFixed(2)}</p>
+                    <p className="text-3xl font-light text-white">{currencySymbol}{result.total.toFixed(2)}</p>
                   </div>
 
                   <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
@@ -189,7 +190,7 @@ export const SplitBillModal: React.FC<SplitBillModalProps> = ({ isOpen, setIsOpe
                       <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-white">{split.person}</span>
-                          <span className="font-medium text-white">{CURRENCY_SYMBOL}{split.amount.toFixed(2)}</span>
+                          <span className="font-medium text-white">{currencySymbol}{split.amount.toFixed(2)}</span>
                         </div>
                         <p className="text-xs text-white/60">{split.items.join(', ')}</p>
                       </div>
