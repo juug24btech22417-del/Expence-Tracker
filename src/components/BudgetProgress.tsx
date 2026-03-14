@@ -26,7 +26,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({ expenses, budget
 
   return (
     <div className="space-y-4">
-      {budgets.map((budget) => {
+      {budgets.map((budget, index) => {
         const category = categories.find(c => c.id === budget.categoryId) || categories[categories.length - 1];
         const spent = categorySpending[budget.categoryId] || 0;
         const percent = Math.min((spent / budget.amount) * 100, 100);
@@ -34,7 +34,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({ expenses, budget
         const isOver = spent > budget.amount;
 
         return (
-          <GlassCard key={budget.categoryId} className="p-4" hover>
+          <GlassCard key={`${budget.categoryId}-${index}`} className="p-4" hover>
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div 

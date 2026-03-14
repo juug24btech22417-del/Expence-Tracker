@@ -2,21 +2,65 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { CategoryId } from "../types";
 
 const parseJSONResponse = (text: string) => {
-  let cleaned = text.trim();
-  if (cleaned.startsWith('```json')) cleaned = cleaned.substring(7);
-  else if (cleaned.startsWith('```')) cleaned = cleaned.substring(3);
-  if (cleaned.endsWith('```')) cleaned = cleaned.substring(0, cleaned.length - 3);
-  return JSON.parse(cleaned.trim());
+  try {
+    // Try to find a JSON block enclosed in backticks
+    const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (match && match[1]) {
+      return JSON.parse(match[1].trim());
+    }
+    
+    // Fallback: try to find the first { and last }
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      return JSON.parse(text.substring(start, end + 1));
+    }
+    
+    // Last resort: try parsing the whole thing
+    return JSON.parse(text.trim());
+  } catch (e) {
+    console.error("Failed to parse JSON from AI response:", text);
+    throw e;
+  }
 };
 
 const expenseSchema = {
   type: Type.OBJECT,
   properties: {
     amount: { type: Type.NUMBER },
+    currency: { type: Type.STRING, description: "The currency code (e.g., USD, EUR, INR). Default to INR if not specified." },
     category: { type: Type.STRING, description: "The likely category name (e.g. Food, Transport)" },
-    description: { type: Type.STRING }
+    description: { type: Type.STRING, description: "A very short, concise description of the expense (max 3-5 words)." }
   },
-  required: ["amount", "category", "description"]
+  required: ["amount", "currency", "category", "description"]
+};
+
+const convertCurrencyIfNeeded = async (ai: GoogleGenAI, expense: any): Promise<any> => {
+  if (!expense || !expense.currency || expense.currency.toUpperCase() === 'INR') {
+    return expense;
+  }
+
+  try {
+    const conversionResponse = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Convert ${expense.amount} ${expense.currency} to INR using the current exchange rate. Return ONLY a JSON object with 'amount' (the converted amount in INR as a number) and 'rateInfo' (a very short string like "1 USD = 83 INR").`,
+      config: {
+        tools: [{ googleSearch: {} }]
+      }
+    });
+
+    const conversion = parseJSONResponse(conversionResponse.text);
+    if (conversion && conversion.amount) {
+      return {
+        ...expense,
+        amount: conversion.amount,
+        description: `${expense.description} (${expense.amount} ${expense.currency})`
+      };
+    }
+  } catch (e) {
+    console.error("Currency conversion failed:", e);
+  }
+  return expense;
 };
 
 export const parseExpenseWithAI = async (text: string, travelMode: boolean = false): Promise<{ amount: number; category: string; description: string } | null> => {
@@ -24,19 +68,21 @@ export const parseExpenseWithAI = async (text: string, travelMode: boolean = fal
   
   try {
     const travelPrompt = travelMode 
-      ? "TRAVEL MODE ACTIVE: The user is traveling. If the currency mentioned is foreign, you MUST use the Google Search tool to find the exact current exchange rate for that currency to INR (Indian Rupee), and convert the amount to INR. Mention the original currency and the exchange rate used in the description. CRITICAL: You must return ONLY a valid JSON object with exactly these keys: 'amount' (number), 'category' (string), and 'description' (string). Do not include any markdown formatting like ```json." 
-      : "";
+      ? "TRAVEL MODE ACTIVE: Identify the currency mentioned. If no currency is mentioned, assume INR." 
+      : "Assume the currency is INR.";
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Extract expense details from this text: "${text}". ${travelPrompt}
-      Return JSON format.`,
-      config: travelMode 
-        ? { tools: [{ googleSearch: {} }] }
-        : { responseMimeType: "application/json", responseSchema: expenseSchema }
+      Return JSON format. Keep the description very short (max 3 words).`,
+      config: { responseMimeType: "application/json", responseSchema: expenseSchema }
     });
 
-    return parseJSONResponse(response.text);
+    let result = JSON.parse(response.text);
+    if (travelMode) {
+      result = await convertCurrencyIfNeeded(ai, result);
+    }
+    return result;
   } catch (error) {
     console.error("AI Parsing Error:", error);
     return null;
@@ -48,8 +94,8 @@ export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: str
   
   try {
     const travelPrompt = travelMode 
-      ? "TRAVEL MODE ACTIVE: The user is traveling. If the currency mentioned is foreign, you MUST use the Google Search tool to find the exact current exchange rate for that currency to INR (Indian Rupee), and convert the amount to INR. Mention the original currency and the exchange rate used in the description. CRITICAL: You must return ONLY a valid JSON object with exactly these keys: 'amount' (number), 'category' (string), and 'description' (string). Do not include any markdown formatting like ```json." 
-      : "";
+      ? "TRAVEL MODE ACTIVE: Identify the currency mentioned. If no currency is mentioned, assume INR." 
+      : "Assume the currency is INR.";
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -61,15 +107,17 @@ export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: str
           }
         },
         {
-          text: `Extract expense details from this audio. ${travelPrompt} Return JSON format.`
+          text: `Extract expense details from this audio. ${travelPrompt} Return JSON format. Keep the description very short (max 3 words).`
         }
       ],
-      config: travelMode 
-        ? { tools: [{ googleSearch: {} }] }
-        : { responseMimeType: "application/json", responseSchema: expenseSchema }
+      config: { responseMimeType: "application/json", responseSchema: expenseSchema }
     });
 
-    return parseJSONResponse(response.text);
+    let result = JSON.parse(response.text);
+    if (travelMode) {
+      result = await convertCurrencyIfNeeded(ai, result);
+    }
+    return result;
   } catch (error) {
     console.error("AI Audio Parsing Error:", error);
     return null;
@@ -81,8 +129,8 @@ export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean
 
   try {
     const travelPrompt = travelMode 
-      ? "TRAVEL MODE ACTIVE: The user is traveling. If the receipt is in a foreign currency, you MUST use the Google Search tool to find the exact current exchange rate for that currency to INR (Indian Rupee), and convert the total to INR. Note the original currency and the exchange rate used in the description. CRITICAL: You must return ONLY a valid JSON object with exactly these keys: 'amount' (number), 'category' (string), and 'description' (string). Do not include any markdown formatting like ```json." 
-      : "";
+      ? "TRAVEL MODE ACTIVE: Identify the currency on the receipt. If no currency is visible, assume INR." 
+      : "Assume the currency is INR.";
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -94,15 +142,17 @@ export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean
           }
         },
         {
-          text: `Extract total amount, category name, and a short description from this receipt. ${travelPrompt} Return JSON.`
+          text: `Extract total amount, category name, and a very short description (max 3 words) from this receipt. ${travelPrompt} Return JSON.`
         }
       ],
-      config: travelMode 
-        ? { tools: [{ googleSearch: {} }] }
-        : { responseMimeType: "application/json", responseSchema: expenseSchema }
+      config: { responseMimeType: "application/json", responseSchema: expenseSchema }
     });
 
-    return parseJSONResponse(response.text);
+    let result = JSON.parse(response.text);
+    if (travelMode) {
+      result = await convertCurrencyIfNeeded(ai, result);
+    }
+    return result;
   } catch (error) {
     console.error("AI Receipt Scan Error:", error);
     return null;
