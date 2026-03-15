@@ -28,7 +28,7 @@ const getExpenseSchema = (baseCurrency: string) => ({
   type: Type.OBJECT,
   properties: {
     amount: { type: Type.NUMBER },
-    currency: { type: Type.STRING, description: `The ORIGINAL currency code (e.g., USD, EUR). Default to ${baseCurrency} if not specified.` },
+    currency: { type: Type.STRING, description: `The ORIGINAL 3-letter currency code (e.g., USD, EUR, GBP). DO NOT use symbols like $. Default to ${baseCurrency} ONLY if absolutely no currency can be inferred.` },
     category: { type: Type.STRING, description: "The likely category name (e.g. Food, Transport)" },
     description: { type: Type.STRING, description: "A very short, concise description of the expense. MUST be 3 words or less. DO NOT include currency conversion details." }
   },
@@ -46,9 +46,17 @@ const convertCurrencyIfNeeded = async (ai: GoogleGenAI, expense: any, baseCurren
     console.log(`Converting ${expense.amount} ${expense.currency} to ${baseCurrency}`);
     const conversionResponse = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Convert ${expense.amount} ${expense.currency} to ${baseCurrency} using the current exchange rate. Return ONLY a JSON block with 'amount' (the converted amount in ${baseCurrency} as a number) and 'rateInfo' (a very short string like "1 USD = 83 INR"). Do not include any other text.`,
+      contents: `You are a currency converter. Convert ${expense.amount} ${expense.currency} to ${baseCurrency} using recent exchange rates. Return ONLY a JSON block with 'amount' (the converted amount in ${baseCurrency} as a number) and 'rateInfo' (a short string like "1 USD = 83 INR").`,
       config: {
-        tools: [{ googleSearch: {} }]
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            amount: { type: Type.NUMBER },
+            rateInfo: { type: Type.STRING }
+          },
+          required: ["amount", "rateInfo"]
+        }
       }
     });
 
@@ -74,7 +82,7 @@ export const parseExpenseWithAI = async (text: string, travelMode: boolean = fal
   
   try {
     const travelPrompt = travelMode 
-      ? `TRAVEL MODE ACTIVE: Identify the ORIGINAL currency mentioned. If no currency is mentioned, assume ${baseCurrency}.` 
+      ? `TRAVEL MODE ACTIVE: Identify the ORIGINAL 3-letter currency code (e.g., USD, EUR, GBP). If a symbol like '$' is used, infer the currency based on context (e.g., USD). DO NOT default to ${baseCurrency} unless explicitly stated.` 
       : `Assume the currency is ${baseCurrency}.`;
 
     const response = await ai.models.generateContent({
@@ -100,7 +108,7 @@ export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: str
   
   try {
     const travelPrompt = travelMode 
-      ? `TRAVEL MODE ACTIVE: Identify the ORIGINAL currency mentioned. If no currency is mentioned, assume ${baseCurrency}.` 
+      ? `TRAVEL MODE ACTIVE: Identify the ORIGINAL 3-letter currency code (e.g., USD, EUR, GBP). If a symbol like '$' is used, infer the currency based on context (e.g., USD). DO NOT default to ${baseCurrency} unless explicitly stated.` 
       : `Assume the currency is ${baseCurrency}.`;
 
     const response = await ai.models.generateContent({
@@ -135,7 +143,7 @@ export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean
 
   try {
     const travelPrompt = travelMode 
-      ? `TRAVEL MODE ACTIVE: Identify the ORIGINAL currency. If no currency is visible, assume ${baseCurrency}.` 
+      ? `TRAVEL MODE ACTIVE: Identify the ORIGINAL 3-letter currency code (e.g., USD, EUR, GBP). If a symbol like '$' is used, infer the currency based on context (e.g., USD). DO NOT default to ${baseCurrency} unless explicitly stated.` 
       : `Assume the currency is ${baseCurrency}.`;
 
     const response = await ai.models.generateContent({

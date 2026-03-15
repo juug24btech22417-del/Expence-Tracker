@@ -35,7 +35,8 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, 
               layout
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              exit={{ opacity: 0, scale: 0.98, filter: "blur(4px)" }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
             >
               <GlassCard className="group flex items-center justify-between p-4" hover>
                 <div className="flex items-center gap-4">

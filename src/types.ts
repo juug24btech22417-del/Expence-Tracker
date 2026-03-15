@@ -22,10 +22,10 @@ export interface Budget {
 }
 
 export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
-  { id: 'food', name: 'Food', color: '#FF6B6B' },
-  { id: 'transport', name: 'Transport', color: '#4ECDC4' },
-  { id: 'shopping', name: 'Shopping', color: '#FFE66D' },
-  { id: 'entertainment', name: 'Entertainment', color: '#A594F9' },
-  { id: 'health', name: 'Health', color: '#6BCB77' },
-  { id: 'other', name: 'Other', color: '#95A5A6' },
+  { id: 'food', name: 'Food', color: '#A3B1C6' },
+  { id: 'transport', name: 'Transport', color: '#B4A7D6' },
+  { id: 'shopping', name: 'Shopping', color: '#8E9299' },
+  { id: 'entertainment', name: 'Entertainment', color: '#C2B59B' },
+  { id: 'health', name: 'Health', color: '#93B0A2' },
+  { id: 'other', name: 'Other', color: '#7A8B99' },
 ];

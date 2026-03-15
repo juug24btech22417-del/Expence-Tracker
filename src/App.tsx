@@ -61,6 +61,30 @@ export default function App() {
     localStorage.setItem('budgets', JSON.stringify(budgets));
   }, [budgets]);
 
+  // Migrate old bright colors to new muted colors
+  useEffect(() => {
+    const colorMap: Record<string, string> = {
+      '#FF6B6B': '#A3B1C6',
+      '#4ECDC4': '#B4A7D6',
+      '#FFE66D': '#8E9299',
+      '#A594F9': '#C2B59B',
+      '#6BCB77': '#93B0A2',
+      '#95A5A6': '#7A8B99',
+    };
+    
+    setCategories(prev => {
+      let changed = false;
+      const next = prev.map(c => {
+        if (colorMap[c.color]) {
+          changed = true;
+          return { ...c, color: colorMap[c.color] };
+        }
+        return c;
+      });
+      return changed ? next : prev;
+    });
+  }, []);
+
   const addExpense = (data: { amount: number; categoryId: CategoryId; description: string; originalAmount?: number; originalCurrency?: string }) => {
     const newExpense: Expense = {
       id: Math.random().toString(36).substr(2, 9),

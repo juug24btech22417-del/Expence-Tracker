@@ -25,7 +25,7 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
       id,
       name: category?.name || 'Other',
       value,
-      color: category?.color || '#95A5A6',
+      color: category?.color || '#7A8B99',
     };
   }).filter(d => (d.value as number) > 0);
 
