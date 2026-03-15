@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, Camera, LayoutDashboard, List, PieChart as ChartIcon, Sparkles, Wallet, Plane, Users, Square, Settings } from 'lucide-react';
+import { Mic, Camera, LayoutDashboard, List, PieChart as ChartIcon, Sparkles, Wallet, Plane, Users, Square, Settings, AlertTriangle } from 'lucide-react';
 import { Expense, CategoryId, Budget, CategoryDefinition, DEFAULT_CATEGORIES } from './types';
 import { GlassCard } from './components/GlassCard';
 import { ExpenseForm } from './components/ExpenseForm';
@@ -17,6 +17,8 @@ import { Waves } from './components/Waves';
 import { cn } from './utils';
 import { useCurrency } from './contexts/CurrencyContext';
 import { CURRENCIES } from './constants';
+import { RegretInsights } from './components/RegretInsights';
+import { RegretNudge } from './components/RegretNudge';
 
 export default function App() {
   const { baseCurrency, setBaseCurrency, currencySymbol } = useCurrency();
@@ -36,7 +38,7 @@ export default function App() {
       { categoryId: 'shopping', amount: 3000 },
     ];
   });
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'stats' | 'budgets'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'stats' | 'budgets' | 'regret'>('dashboard');
   const [isScanning, setIsScanning] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
@@ -124,6 +126,16 @@ export default function App() {
   const deleteExpense = (id: string) => {
     setExpenses((prev) => prev.filter((e) => e.id !== id));
   };
+
+  const handleRateExpense = (id: string, rating: 'yes' | 'neutral' | 'no') => {
+    setExpenses(prev => prev.map(e => e.id === id ? { ...e, rating } : e));
+  };
+
+  const unratedExpense = React.useMemo(() => {
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    return expenses.find(e => !e.rating && new Date(e.date) <= threeDaysAgo);
+  }, [expenses]);
 
   const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -387,6 +399,27 @@ export default function App() {
                       Changing the base currency will apply to all new expenses and AI conversions.
                     </p>
                   </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40">
+                      Developer Tools
+                    </label>
+                    <button
+                      onClick={() => {
+                        setExpenses(prev => prev.map(e => {
+                          const newDate = new Date(e.date);
+                          newDate.setDate(newDate.getDate() - 3);
+                          return { ...e, date: newDate.toISOString() };
+                        }));
+                        setIsSettingsOpen(false);
+                      }}
+                      className="w-full rounded-xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                    >
+                      Fast Forward 3 Days (Test Regret)
+                    </button>
+                    <p className="mt-3 text-xs text-white/40">
+                      Ages all expenses by 3 days to trigger regret nudges.
+                    </p>
+                  </div>
                 </div>
 
                 <button
@@ -429,6 +462,7 @@ export default function App() {
             { id: 'history', icon: List, label: 'History' },
             { id: 'budgets', icon: Wallet, label: 'Budgets' },
             { id: 'stats', icon: ChartIcon, label: 'Analytics' },
+            { id: 'regret', icon: AlertTriangle, label: 'Regret Insights' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -457,6 +491,11 @@ export default function App() {
           >
             {activeTab === 'dashboard' && (
               <div className="space-y-8">
+                <AnimatePresence>
+                  {unratedExpense && (
+                    <RegretNudge expense={unratedExpense} onRate={handleRateExpense} />
+                  )}
+                </AnimatePresence>
                 <Charts expenses={expenses.slice(0, 10)} categories={categories} />
                 <div>
                   <div className="mb-4 flex items-center justify-between">
@@ -511,6 +550,10 @@ export default function App() {
                   </div>
                 </GlassCard>
               </div>
+            )}
+
+            {activeTab === 'regret' && (
+              <RegretInsights expenses={expenses} categories={categories} />
             )}
           </motion.div>
         </AnimatePresence>

@@ -38,7 +38,19 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
           style={{ backgroundColor: `${category.color}40`, border: `1px solid ${category.color}` }}
         />
         <div>
-          <p className="text-sm font-medium text-white">{expense.description}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-white">{expense.description}</p>
+            {expense.rating === 'no' && (
+              <span className="rounded-full bg-orange-500/20 border border-orange-500/50 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-orange-400">
+                Regret
+              </span>
+            )}
+            {expense.rating === 'yes' && (
+              <span className="rounded-full bg-emerald-500/20 border border-emerald-500/50 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">
+                Worth It
+              </span>
+            )}
+          </div>
           <p className="text-[10px] uppercase tracking-widest text-white/40">
             {category.name} • {format(new Date(expense.date), 'MMM d, h:mm a')}
           </p>

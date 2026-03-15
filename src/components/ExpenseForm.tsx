@@ -21,11 +21,13 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || isNaN(Number(amount))) return;
+    
     onAdd({
       amount: Number(amount),
       categoryId,
       description: description || categories.find(c => c.id === categoryId)?.name || 'Expense',
     });
+    
     setAmount('');
     setDescription('');
     setIsOpen(false);
