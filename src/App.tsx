@@ -42,7 +42,6 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
-  const [isTravelMode, setIsTravelMode] = useState(false);
   const [isSplitBillOpen, setIsSplitBillOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
@@ -179,7 +178,7 @@ export default function App() {
           const base64Audio = (reader.result as string).split(',')[1];
           
           setIsProcessingVoice(true);
-          const result = await parseAudioExpenseWithAI(base64Audio, audioBlob.type, isTravelMode, baseCurrency);
+          const result = await parseAudioExpenseWithAI(base64Audio, audioBlob.type, travelMode, baseCurrency, exchangeRates);
           setIsProcessingVoice(false);
 
           if (result) {
@@ -218,7 +217,7 @@ export default function App() {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
-        const result = await scanReceiptWithAI(base64, isTravelMode, baseCurrency);
+        const result = await scanReceiptWithAI(base64, travelMode, baseCurrency, exchangeRates);
         setIsScanning(false);
         if (result) {
           const categoryId = categories.find(c => c.name.toLowerCase() === (result as any).category.toLowerCase())?.id || 'other';
@@ -262,7 +261,7 @@ export default function App() {
 
       {/* Travel Mode Banner */}
       <AnimatePresence>
-        {isTravelMode && (
+        {travelMode && (
           <motion.div
             initial={{ opacity: 0, y: -20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -307,10 +306,10 @@ export default function App() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setIsTravelMode(!isTravelMode)}
+              onClick={() => setTravelMode(!travelMode)}
               className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-full border transition-all",
-                isTravelMode 
+                travelMode 
                   ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-400" 
                   : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
               )}

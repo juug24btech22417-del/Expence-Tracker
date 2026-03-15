@@ -35,11 +35,23 @@ const getExpenseSchema = (baseCurrency: string) => ({
   required: ["amount", "currency", "category", "description"]
 });
 
-const convertCurrencyIfNeeded = async (ai: GoogleGenAI, expense: any, baseCurrency: string = 'INR'): Promise<any> => {
-  console.log("convertCurrencyIfNeeded called with:", expense, baseCurrency);
+const convertCurrencyIfNeeded = async (ai: GoogleGenAI, expense: any, baseCurrency: string = 'INR', exchangeRates: Record<string, number> = {}): Promise<any> => {
+  console.log("convertCurrencyIfNeeded called with:", expense, baseCurrency, exchangeRates);
   if (!expense || !expense.currency || expense.currency.toUpperCase() === baseCurrency.toUpperCase()) {
     console.log("No conversion needed.");
     return expense;
+  }
+
+  // Try to use manual exchange rates first
+  const rate = exchangeRates[expense.currency.toUpperCase()];
+  if (rate) {
+    console.log(`Using manual exchange rate for ${expense.currency}: ${rate}`);
+    return {
+      ...expense,
+      amount: expense.amount * rate,
+      originalAmount: expense.amount,
+      originalCurrency: expense.currency
+    };
   }
 
   try {
@@ -150,7 +162,7 @@ export const chatWithAIAssistant = async (
   }
 };
 
-export const parseExpenseWithAI = async (text: string, travelMode: boolean = false, baseCurrency: string = 'INR'): Promise<{ amount: number; category: string; description: string; originalAmount?: number; originalCurrency?: string } | null> => {
+export const parseExpenseWithAI = async (text: string, travelMode: boolean = false, baseCurrency: string = 'INR', exchangeRates: Record<string, number> = {}): Promise<{ amount: number; category: string; description: string; originalAmount?: number; originalCurrency?: string } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
   try {
@@ -167,7 +179,7 @@ export const parseExpenseWithAI = async (text: string, travelMode: boolean = fal
 
     let result = parseJSONResponse(response.text);
     if (travelMode) {
-      result = await convertCurrencyIfNeeded(ai, result, baseCurrency);
+      result = await convertCurrencyIfNeeded(ai, result, baseCurrency, exchangeRates);
     }
     return result;
   } catch (error) {
@@ -176,7 +188,7 @@ export const parseExpenseWithAI = async (text: string, travelMode: boolean = fal
   }
 };
 
-export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: string, travelMode: boolean = false, baseCurrency: string = 'INR'): Promise<{ amount: number; category: string; description: string; originalAmount?: number; originalCurrency?: string } | null> => {
+export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: string, travelMode: boolean = false, baseCurrency: string = 'INR', exchangeRates: Record<string, number> = {}): Promise<{ amount: number; category: string; description: string; originalAmount?: number; originalCurrency?: string } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
   try {
@@ -202,7 +214,7 @@ export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: str
 
     let result = parseJSONResponse(response.text);
     if (travelMode) {
-      result = await convertCurrencyIfNeeded(ai, result, baseCurrency);
+      result = await convertCurrencyIfNeeded(ai, result, baseCurrency, exchangeRates);
     }
     return result;
   } catch (error) {
@@ -211,7 +223,7 @@ export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: str
   }
 };
 
-export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean = false, baseCurrency: string = 'INR'): Promise<{ amount: number; category: string; description: string; originalAmount?: number; originalCurrency?: string } | null> => {
+export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean = false, baseCurrency: string = 'INR', exchangeRates: Record<string, number> = {}): Promise<{ amount: number; category: string; description: string; originalAmount?: number; originalCurrency?: string } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   try {
@@ -237,7 +249,7 @@ export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean
 
     let result = parseJSONResponse(response.text);
     if (travelMode) {
-      result = await convertCurrencyIfNeeded(ai, result, baseCurrency);
+      result = await convertCurrencyIfNeeded(ai, result, baseCurrency, exchangeRates);
     }
     return result;
   } catch (error) {
