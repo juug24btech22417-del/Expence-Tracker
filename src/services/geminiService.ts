@@ -46,8 +46,9 @@ const convertCurrencyIfNeeded = async (ai: GoogleGenAI, expense: any, baseCurren
     console.log(`Converting ${expense.amount} ${expense.currency} to ${baseCurrency}`);
     const conversionResponse = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `You are a currency converter. Convert ${expense.amount} ${expense.currency} to ${baseCurrency} using recent exchange rates. Return ONLY a JSON block with 'amount' (the converted amount in ${baseCurrency} as a number) and 'rateInfo' (a short string like "1 USD = 83 INR").`,
+      contents: `You are a currency converter. Convert ${expense.amount} ${expense.currency} to ${baseCurrency} using recent exchange rates. You MUST use the googleSearch tool to find the LIVE exchange rate today. Return ONLY a JSON block with 'amount' (the converted amount in ${baseCurrency} as a number) and 'rateInfo' (a short string like "1 USD = 83 INR").`,
       config: {
+        tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -75,6 +76,74 @@ const convertCurrencyIfNeeded = async (ai: GoogleGenAI, expense: any, baseCurren
     console.error("Currency conversion failed:", e);
   }
   return expense;
+};
+
+export const chatWithAIAssistant = async (
+  message: string,
+  expenses: any[],
+  budgets: any[],
+  categories: any[],
+  baseCurrency: string,
+  audio?: { base64Audio: string; mimeType: string }
+): Promise<{ message: string; action?: { amount: number; category: string; description: string } } | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  try {
+    const context = `
+      You are a helpful, concise financial AI assistant.
+      User's Base Currency: ${baseCurrency}
+      Current Categories: ${categories.map(c => c.name).join(', ')}
+      Current Budgets: ${JSON.stringify(budgets)}
+      Recent Expenses (last 20): ${JSON.stringify(expenses.slice(0, 20).map(e => ({ amount: e.amount, category: categories.find(c => c.id === e.categoryId)?.name, desc: e.description, date: e.date })))}
+      
+      If the user is asking a question about their spending, answer it concisely and helpfully.
+      If the user is telling you about a new expense (e.g., "I just spent $50 on food" or "I spent 10 dollars on a taxi"), acknowledge it in the message AND provide the 'action' object to add it.
+      CRITICAL: If the user mentions a currency different from their Base Currency (like dollars, euros, etc.), you MUST use the googleSearch tool to find the LIVE exchange rate to ${baseCurrency} today, and convert the amount to ${baseCurrency} before putting it in the 'action.amount' field.
+      Keep your message short, friendly, and under 2 sentences.
+    `;
+
+    const contents: any[] = [];
+    if (audio) {
+      contents.push({
+        inlineData: {
+          mimeType: audio.mimeType,
+          data: audio.base64Audio
+        }
+      });
+    }
+    contents.push({ text: `${context}\n\nUser Message: "${message}"` });
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: contents,
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            message: { type: Type.STRING, description: "Your conversational response to the user." },
+            action: {
+              type: Type.OBJECT,
+              description: "Include this ONLY if the user is explicitly adding a new expense.",
+              properties: {
+                amount: { type: Type.NUMBER, description: `The final amount in the user's base currency (${baseCurrency}). If the user specifies a foreign currency, you MUST use the googleSearch tool to find the live exchange rate and convert it to ${baseCurrency} before returning.` },
+                category: { type: Type.STRING, description: "Must match one of the Current Categories." },
+                description: { type: Type.STRING, description: "Short description (max 3 words)." }
+              },
+              required: ["amount", "category", "description"]
+            }
+          },
+          required: ["message"]
+        }
+      }
+    });
+
+    return parseJSONResponse(response.text);
+  } catch (error) {
+    console.error("AI Assistant Error:", error);
+    return null;
+  }
 };
 
 export const parseExpenseWithAI = async (text: string, travelMode: boolean = false, baseCurrency: string = 'INR'): Promise<{ amount: number; category: string; description: string; originalAmount?: number; originalCurrency?: string } | null> => {

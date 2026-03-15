@@ -10,6 +10,7 @@ import { BudgetManager } from './components/BudgetManager';
 import { SplitBillModal } from './components/SplitBillModal';
 import { WhatIfSimulator } from './components/WhatIfSimulator';
 import { SplashScreen } from './components/SplashScreen';
+import { AIAssistant } from './components/AIAssistant';
 import { motion, AnimatePresence } from 'motion/react';
 import { parseExpenseWithAI, scanReceiptWithAI, parseAudioExpenseWithAI } from './services/geminiService';
 import { Waves } from './components/Waves';
@@ -433,10 +434,10 @@ export default function App() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={cn(
-                'flex min-w-[100px] flex-1 items-center justify-center gap-2 rounded-2xl border py-3 text-xs font-medium transition-all whitespace-nowrap',
+                'flex min-w-[100px] flex-1 items-center justify-center gap-2 rounded-2xl border py-3 text-xs transition-all whitespace-nowrap',
                 activeTab === tab.id
-                  ? 'border-white/10 bg-white/5 text-white'
-                  : 'border-transparent text-white/40 hover:text-white/60'
+                  ? 'border-white/20 bg-white/10 text-white font-bold shadow-[0_0_15px_rgba(255,255,255,0.1)]'
+                  : 'border-transparent text-white/40 hover:text-white/60 font-medium'
               )}
             >
               <tab.icon size={14} />
@@ -514,6 +515,14 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* AI Assistant */}
+      <AIAssistant 
+        expenses={expenses} 
+        budgets={budgets} 
+        categories={categories} 
+        onAddExpense={addExpense} 
+      />
 
       {/* Add Expense Button & Form */}
       <ExpenseForm categories={categories} onAdd={addExpense} />

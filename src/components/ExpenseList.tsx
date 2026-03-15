@@ -67,10 +67,10 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0, scale: 0.9, y: -20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, filter: "blur(4px)" }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
       className="relative"
     >
       {/* Solid Card - Fades out quickly when deleting starts */}
