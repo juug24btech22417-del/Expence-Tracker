@@ -36,34 +36,31 @@ const getExpenseSchema = (baseCurrency: string) => ({
 });
 
 const convertCurrencyIfNeeded = async (ai: GoogleGenAI, expense: any, baseCurrency: string = 'INR'): Promise<any> => {
+  console.log("convertCurrencyIfNeeded called with:", expense, baseCurrency);
   if (!expense || !expense.currency || expense.currency.toUpperCase() === baseCurrency.toUpperCase()) {
+    console.log("No conversion needed.");
     return expense;
   }
 
   try {
+    console.log(`Converting ${expense.amount} ${expense.currency} to ${baseCurrency}`);
     const conversionResponse = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Convert ${expense.amount} ${expense.currency} to ${baseCurrency} using the current exchange rate. Return ONLY a JSON block with 'amount' (the converted amount in ${baseCurrency} as a number) and 'rateInfo' (a very short string like "1 USD = 83 INR"). Do not include any other text.`,
       config: {
-        tools: [{ googleSearch: {} }],
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            amount: { type: Type.NUMBER },
-            rateInfo: { type: Type.STRING }
-          },
-          required: ["amount", "rateInfo"]
-        }
+        tools: [{ googleSearch: {} }]
       }
     });
 
     const conversion = parseJSONResponse(conversionResponse.text);
+    console.log("Conversion result:", conversion);
     if (conversion && conversion.amount) {
       return {
         ...expense,
-        amount: conversion.amount,
-        description: `${expense.description} (${expense.amount} ${expense.currency})`
+        amount: Number(conversion.amount),
+        description: expense.description,
+        originalAmount: expense.amount,
+        originalCurrency: expense.currency
       };
     }
   } catch (e) {
@@ -72,7 +69,7 @@ const convertCurrencyIfNeeded = async (ai: GoogleGenAI, expense: any, baseCurren
   return expense;
 };
 
-export const parseExpenseWithAI = async (text: string, travelMode: boolean = false, baseCurrency: string = 'INR'): Promise<{ amount: number; category: string; description: string } | null> => {
+export const parseExpenseWithAI = async (text: string, travelMode: boolean = false, baseCurrency: string = 'INR'): Promise<{ amount: number; category: string; description: string; originalAmount?: number; originalCurrency?: string } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
   try {
@@ -83,7 +80,7 @@ export const parseExpenseWithAI = async (text: string, travelMode: boolean = fal
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Extract expense details from this text: "${text}". ${travelPrompt}
-      Return JSON format. Keep the description very short (max 3 words). CRITICAL: DO NOT perform any currency conversion yourself. Extract the EXACT original amount and currency from the text.`,
+      Return JSON format. Keep the description very short (max 3 words). CRITICAL: DO NOT perform any currency conversion yourself. Extract the EXACT original amount and currency from the text. DO NOT convert to ${baseCurrency}.`,
       config: { responseMimeType: "application/json", responseSchema: getExpenseSchema(baseCurrency) }
     });
 
@@ -98,7 +95,7 @@ export const parseExpenseWithAI = async (text: string, travelMode: boolean = fal
   }
 };
 
-export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: string, travelMode: boolean = false, baseCurrency: string = 'INR'): Promise<{ amount: number; category: string; description: string } | null> => {
+export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: string, travelMode: boolean = false, baseCurrency: string = 'INR'): Promise<{ amount: number; category: string; description: string; originalAmount?: number; originalCurrency?: string } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
   try {
@@ -116,7 +113,7 @@ export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: str
           }
         },
         {
-          text: `Extract expense details from this audio. ${travelPrompt} Return JSON format. Keep the description very short (max 3 words). CRITICAL: DO NOT perform any currency conversion yourself. Extract the EXACT original amount and currency from the audio.`
+          text: `Extract expense details from this audio. ${travelPrompt} Return JSON format. Keep the description very short (max 3 words). CRITICAL: DO NOT perform any currency conversion yourself. Extract the EXACT original amount and currency from the audio. DO NOT convert to ${baseCurrency}.`
         }
       ],
       config: { responseMimeType: "application/json", responseSchema: getExpenseSchema(baseCurrency) }
@@ -133,7 +130,7 @@ export const parseAudioExpenseWithAI = async (base64Audio: string, mimeType: str
   }
 };
 
-export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean = false, baseCurrency: string = 'INR'): Promise<{ amount: number; category: string; description: string } | null> => {
+export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean = false, baseCurrency: string = 'INR'): Promise<{ amount: number; category: string; description: string; originalAmount?: number; originalCurrency?: string } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   try {
@@ -151,7 +148,7 @@ export const scanReceiptWithAI = async (base64Image: string, travelMode: boolean
           }
         },
         {
-          text: `Extract total amount, category name, and a very short description (max 3 words) from this receipt. ${travelPrompt} Return JSON. CRITICAL: DO NOT perform any currency conversion yourself. Extract the EXACT original amount and currency from the receipt.`
+          text: `Extract total amount, category name, and a very short description (max 3 words) from this receipt. ${travelPrompt} Return JSON. CRITICAL: DO NOT perform any currency conversion yourself. Extract the EXACT original amount and currency from the receipt. DO NOT convert to ${baseCurrency}.`
         }
       ],
       config: { responseMimeType: "application/json", responseSchema: getExpenseSchema(baseCurrency) }

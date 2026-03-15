@@ -51,7 +51,14 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, 
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <p className="text-lg font-light text-white">-{currencySymbol}{expense.amount.toFixed(2)}</p>
+                  <div className="text-right">
+                    <p className="text-lg font-light text-white">-{currencySymbol}{expense.amount.toFixed(2)}</p>
+                    {expense.originalAmount && expense.originalCurrency && (
+                      <p className="text-[10px] text-white/40">
+                        ({expense.originalAmount.toFixed(2)} {expense.originalCurrency})
+                      </p>
+                    )}
+                  </div>
                   <button
                     onClick={() => onDelete(expense.id)}
                     className="opacity-0 transition-opacity group-hover:opacity-100 text-white/40 hover:text-red-400"

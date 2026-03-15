@@ -12,6 +12,8 @@ export interface Expense {
   categoryId: CategoryId;
   description: string;
   date: string; // ISO string
+  originalAmount?: number;
+  originalCurrency?: string;
 }
 
 export interface Budget {

@@ -9,6 +9,7 @@ import { BudgetProgress } from './components/BudgetProgress';
 import { BudgetManager } from './components/BudgetManager';
 import { SplitBillModal } from './components/SplitBillModal';
 import { WhatIfSimulator } from './components/WhatIfSimulator';
+import { SplashScreen } from './components/SplashScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { parseExpenseWithAI, scanReceiptWithAI, parseAudioExpenseWithAI } from './services/geminiService';
 import { Waves } from './components/Waves';
@@ -41,6 +42,7 @@ export default function App() {
   const [isTravelMode, setIsTravelMode] = useState(false);
   const [isSplitBillOpen, setIsSplitBillOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
   const [budgetAlert, setBudgetAlert] = useState<{ message: string, type: 'warning' | 'danger' } | null>(null);
 
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
@@ -59,7 +61,7 @@ export default function App() {
     localStorage.setItem('budgets', JSON.stringify(budgets));
   }, [budgets]);
 
-  const addExpense = (data: { amount: number; categoryId: CategoryId; description: string }) => {
+  const addExpense = (data: { amount: number; categoryId: CategoryId; description: string; originalAmount?: number; originalCurrency?: string }) => {
     const newExpense: Expense = {
       id: Math.random().toString(36).substr(2, 9),
       ...data,
@@ -148,7 +150,9 @@ export default function App() {
             addExpense({
               amount: result.amount,
               categoryId,
-              description: result.description
+              description: result.description,
+              originalAmount: result.originalAmount,
+              originalCurrency: result.originalCurrency
             });
           } else {
             alert("Couldn't understand that. Try again!");
@@ -184,7 +188,9 @@ export default function App() {
           addExpense({
             amount: result.amount,
             categoryId,
-            description: result.description
+            description: result.description,
+            originalAmount: result.originalAmount,
+            originalCurrency: result.originalCurrency
           });
         } else {
           alert("Couldn't scan receipt. Try a clearer photo!");
@@ -197,6 +203,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen text-white selection:bg-white/20">
+      {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+
       {/* Animated Waves Background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <Waves
@@ -215,14 +223,37 @@ export default function App() {
         />
       </div>
 
+      {/* Travel Mode Banner */}
+      <AnimatePresence>
+        {isTravelMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-6 left-1/2 z-40 -translate-x-1/2 flex items-center gap-3 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 shadow-[0_0_20px_rgba(99,102,241,0.2)] backdrop-blur-xl"
+          >
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-300">
+              <Plane size={12} />
+            </div>
+            <span className="text-xs font-medium tracking-wide text-indigo-200">
+              Travel Mode • Auto-converting to {baseCurrency}
+            </span>
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500"></span>
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Budget Alert Toast */}
       <AnimatePresence>
         {budgetAlert && (
           <motion.div
-            initial={{ opacity: 0, y: -50 }}
+            initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-            className="fixed top-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/10 bg-black/80 px-6 py-3 shadow-2xl backdrop-blur-xl"
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/10 bg-black/80 px-6 py-3 shadow-2xl backdrop-blur-xl"
           >
             <div className={cn("h-2 w-2 rounded-full", budgetAlert.type === 'danger' ? "bg-red-500" : "bg-yellow-500")} />
             <p className="text-sm font-medium text-white">{budgetAlert.message}</p>
