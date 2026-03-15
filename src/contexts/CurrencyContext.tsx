@@ -46,12 +46,22 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       try {
         const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${baseCurrency}`);
         const data = await response.json();
-        setExchangeRates(prev => ({ ...prev, ...data.rates }));
+        const newRates: Record<string, number> = {};
+        for (const currency in data.rates) {
+          // The API returns rates as (currency / baseCurrency).
+          // We need (baseCurrency / currency) to convert from foreign currency to base currency.
+          newRates[currency] = 1 / data.rates[currency];
+        }
+        setExchangeRates(prev => ({ ...prev, ...newRates }));
       } catch (error) {
         console.error("Failed to fetch exchange rates:", error);
       }
     };
     fetchRates();
+    
+    // Fetch rates every hour
+    const interval = setInterval(fetchRates, 60 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [baseCurrency]);
 
   useEffect(() => {
