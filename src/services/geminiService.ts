@@ -430,3 +430,37 @@ export const simulateWhatIf = async (scenario: string, expensesSummary: string, 
     return null;
   }
 };
+
+export const summarizeSpendingWithAI = async (
+  expensesSummary: string,
+  currencySymbol: string = '₹'
+): Promise<{ insights: string[] } | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Analyze this monthly spending summary by category: ${expensesSummary}. 
+      Provide 3-5 insightful observations about the spending habits, such as 'You spent most on Food this month' or 'Your transport spending increased by 15%'. Use the currency symbol ${currencySymbol} for any monetary values. Make them encouraging and helpful.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            insights: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "A list of 3-5 insightful observations."
+            }
+          },
+          required: ["insights"]
+        }
+      }
+    });
+
+    return parseJSONResponse(response.text);
+  } catch (error) {
+    console.error("AI Spending Summary Error:", error);
+    return null;
+  }
+};

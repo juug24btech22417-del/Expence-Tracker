@@ -24,7 +24,7 @@ export const Waves: React.FC<WavesProps> = ({
   waveAmpY = 20,
   friction = 0.9,
   tension = 0.01,
-  maxCursorMove = 120,
+  maxCursorMove = 200,
   xGap = 12,
   yGap = 36,
   className,
@@ -118,8 +118,8 @@ export const Waves: React.FC<WavesProps> = ({
 
           if (dist < maxCursorMove) {
             const force = (maxCursorMove - dist) / maxCursorMove;
-            p.vx -= (distX / dist) * force * 2;
-            p.vy -= (distY / dist) * force * 2;
+            p.vx -= (distX / dist) * force * 5;
+            p.vy -= (distY / dist) * force * 5;
           }
 
           // Spring physics

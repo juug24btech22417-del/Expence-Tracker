@@ -18,6 +18,7 @@ import { cn } from './utils';
 import { useCurrency } from './contexts/CurrencyContext';
 import { CURRENCIES } from './constants';
 import { RegretInsights } from './components/RegretInsights';
+import { AISpendingSummary } from './components/AISpendingSummary';
 import { RegretNudge } from './components/RegretNudge';
 
 export default function App() {
@@ -124,6 +125,30 @@ export default function App() {
 
   const deleteExpense = (id: string) => {
     setExpenses((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const exportData = (format: 'csv' | 'json') => {
+    let dataStr = '';
+    let mimeType = '';
+    let fileName = `expenses.${format}`;
+
+    if (format === 'json') {
+      dataStr = JSON.stringify(expenses, null, 2);
+      mimeType = 'application/json';
+    } else {
+      const headers = ['ID', 'Date', 'Amount', 'Currency', 'Category', 'Description'];
+      const rows = expenses.map(e => [e.id, e.date, e.amount, e.originalCurrency || baseCurrency, e.categoryId, e.description]);
+      dataStr = [headers, ...rows].map(row => row.join(',')).join('\n');
+      mimeType = 'text/csv';
+    }
+
+    const blob = new Blob([dataStr], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleRateExpense = (id: string, rating: 'yes' | 'neutral' | 'no') => {
@@ -419,6 +444,25 @@ export default function App() {
                   </div>
                   <div>
                     <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40">
+                      Export Data
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => exportData('csv')}
+                        className="rounded-xl border border-white/10 bg-white/5 p-3 text-center text-white/60 transition-all hover:bg-white/10 hover:text-white"
+                      >
+                        Export CSV
+                      </button>
+                      <button
+                        onClick={() => exportData('json')}
+                        className="rounded-xl border border-white/10 bg-white/5 p-3 text-center text-white/60 transition-all hover:bg-white/10 hover:text-white"
+                      >
+                        Export JSON
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40">
                       Exchange Rates (1 [Currency] = X {baseCurrency})
                     </label>
                     <div className="space-y-2">
@@ -590,7 +634,10 @@ export default function App() {
             )}
 
             {activeTab === 'regret' && (
-              <RegretInsights expenses={expenses} categories={categories} />
+              <div className="space-y-6">
+                <RegretInsights expenses={expenses} categories={categories} />
+                <AISpendingSummary expenses={expenses} categories={categories} />
+              </div>
             )}
           </motion.div>
         </AnimatePresence>
