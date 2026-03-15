@@ -11,9 +11,11 @@ interface AIAssistantProps {
   budgets: any[];
   categories: CategoryDefinition[];
   onAddExpense: (expense: { amount: number; categoryId: CategoryId; description: string }) => void;
+  travelMode: boolean;
+  exchangeRates: Record<string, number>;
 }
 
-export const AIAssistant: React.FC<AIAssistantProps> = ({ expenses, budgets, categories, onAddExpense }) => {
+export const AIAssistant: React.FC<AIAssistantProps> = ({ expenses, budgets, categories, onAddExpense, travelMode, exchangeRates }) => {
   const { baseCurrency } = useCurrency();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; content: string; isAudio?: boolean }[]>([
@@ -72,7 +74,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ expenses, budgets, cat
 
           const response = await chatWithAIAssistant(
             "I sent a voice message. Please process it.", 
-            expenses, budgets, categories, baseCurrency,
+            expenses, budgets, categories, baseCurrency, travelMode, exchangeRates,
             { base64Audio, mimeType: audioBlob.type }
           );
           
@@ -116,7 +118,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ expenses, budgets, cat
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
-    const response = await chatWithAIAssistant(userMessage, expenses, budgets, categories, baseCurrency);
+    const response = await chatWithAIAssistant(userMessage, expenses, budgets, categories, baseCurrency, travelMode, exchangeRates);
     setIsLoading(false);
     handleAIResponse(response);
   };

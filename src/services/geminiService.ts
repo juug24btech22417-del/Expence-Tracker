@@ -84,6 +84,8 @@ export const chatWithAIAssistant = async (
   budgets: any[],
   categories: any[],
   baseCurrency: string,
+  travelMode: boolean,
+  exchangeRates: Record<string, number>,
   audio?: { base64Audio: string; mimeType: string }
 ): Promise<{ message: string; action?: { amount: number; category: string; description: string } } | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -92,13 +94,15 @@ export const chatWithAIAssistant = async (
     const context = `
       You are a helpful, concise financial AI assistant.
       User's Base Currency: ${baseCurrency}
+      Travel Mode: ${travelMode ? 'ACTIVE' : 'INACTIVE'}
+      ${travelMode ? `Exchange Rates: ${JSON.stringify(exchangeRates)}` : ''}
       Current Categories: ${categories.map(c => c.name).join(', ')}
       Current Budgets: ${JSON.stringify(budgets)}
       Recent Expenses (last 20): ${JSON.stringify(expenses.slice(0, 20).map(e => ({ amount: e.amount, category: categories.find(c => c.id === e.categoryId)?.name, desc: e.description, date: e.date })))}
       
       If the user is asking a question about their spending, answer it concisely and helpfully.
       If the user is telling you about a new expense (e.g., "I just spent $50 on food" or "I spent 10 dollars on a taxi"), acknowledge it in the message AND provide the 'action' object to add it.
-      CRITICAL: If the user mentions a currency different from their Base Currency (like dollars, euros, etc.), you MUST use the googleSearch tool to find the LIVE exchange rate to ${baseCurrency} today, and convert the amount to ${baseCurrency} before putting it in the 'action.amount' field.
+      CRITICAL: If the user mentions a currency different from their Base Currency (like dollars, euros, etc.), you MUST use the exchange rates provided if available. If not, use the googleSearch tool to find the LIVE exchange rate to ${baseCurrency} today, and convert the amount to ${baseCurrency} before putting it in the 'action.amount' field.
       Keep your message short, friendly, and under 2 sentences.
     `;
 

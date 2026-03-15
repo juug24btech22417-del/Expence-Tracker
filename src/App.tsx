@@ -21,7 +21,7 @@ import { RegretInsights } from './components/RegretInsights';
 import { RegretNudge } from './components/RegretNudge';
 
 export default function App() {
-  const { baseCurrency, setBaseCurrency, currencySymbol } = useCurrency();
+  const { baseCurrency, setBaseCurrency, currencySymbol, exchangeRates, setExchangeRate, travelMode, setTravelMode } = useCurrency();
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('expenses');
     return saved ? JSON.parse(saved) : [];
@@ -369,7 +369,7 @@ export default function App() {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-black/80 p-6 shadow-2xl backdrop-blur-xl"
+                className="relative w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-black/80 p-6 shadow-2xl backdrop-blur-xl"
               >
                 <h3 className="mb-6 text-xl font-light text-white">Settings</h3>
                 
@@ -398,6 +398,44 @@ export default function App() {
                     <p className="mt-3 text-xs text-white/40">
                       Changing the base currency will apply to all new expenses and AI conversions.
                     </p>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40">
+                      Travel Mode
+                    </label>
+                    <button
+                      onClick={() => setTravelMode(!travelMode)}
+                      className={cn(
+                        "w-full rounded-xl border p-3 text-center transition-all",
+                        travelMode
+                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                          : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                      )}
+                    >
+                      {travelMode ? 'Enabled' : 'Disabled'}
+                    </button>
+                    <p className="mt-3 text-xs text-white/40">
+                      When enabled, the AI will try to detect the original currency of your expenses.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40">
+                      Exchange Rates (1 [Currency] = X {baseCurrency})
+                    </label>
+                    <div className="space-y-2">
+                      {['USD', 'EUR', 'GBP'].map(currency => (
+                        <div key={currency} className="flex items-center gap-2">
+                          <span className="text-white/60 w-12">{currency}</span>
+                          <input
+                            type="number"
+                            value={exchangeRates[currency] || ''}
+                            onChange={(e) => setExchangeRate(currency, Number(e.target.value))}
+                            placeholder="Rate"
+                            className="flex-1 rounded-xl border border-white/10 bg-white/5 p-2 text-white outline-none focus:border-white/30"
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   <div>
                     <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40">
@@ -564,7 +602,9 @@ export default function App() {
         expenses={expenses} 
         budgets={budgets} 
         categories={categories} 
-        onAddExpense={addExpense} 
+        onAddExpense={addExpense}
+        travelMode={travelMode}
+        exchangeRates={exchangeRates}
       />
 
       {/* Add Expense Button & Form */}
