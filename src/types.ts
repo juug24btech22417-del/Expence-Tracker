@@ -6,8 +6,6 @@ export interface CategoryDefinition {
   color: string;
 }
 
-export type RegretStatus = 'yes' | 'neutral' | 'no';
-
 export interface Expense {
   id: string;
   amount: number;
@@ -16,7 +14,8 @@ export interface Expense {
   date: string; // ISO string
   originalAmount?: number;
   originalCurrency?: string;
-  rating?: RegretStatus;
+  worthItScore?: number; // 1-5
+  carbonFootprint?: number; // kg CO2e
 }
 
 export interface Budget {

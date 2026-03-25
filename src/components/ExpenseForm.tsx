@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, MessageSquare } from 'lucide-react';
 import { CategoryDefinition, CategoryId } from '../types';
 import { GlassCard } from './GlassCard';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { parseSMSTransactionWithAI } from '../services/geminiService';
 
 interface ExpenseFormProps {
   categories: CategoryDefinition[];
@@ -17,6 +18,24 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState<CategoryId>(categories[0]?.id || 'other');
   const [description, setDescription] = useState('');
+  const [smsText, setSmsText] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
+
+  const handleParseSMS = async () => {
+    if (!smsText.trim()) return;
+    setIsParsing(true);
+    const result = await parseSMSTransactionWithAI(smsText);
+    setIsParsing(false);
+    if (result) {
+      setAmount(result.amount.toString());
+      setDescription(result.description);
+      const cat = categories.find(c => c.name.toLowerCase() === result.category.toLowerCase());
+      if (cat) setCategoryId(cat.id);
+      setSmsText('');
+    } else {
+      alert("Couldn't parse SMS. Try again!");
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +49,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
     
     setAmount('');
     setDescription('');
+    setSmsText('');
     setIsOpen(false);
   };
 
@@ -67,6 +87,24 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={smsText}
+                      onChange={(e) => setSmsText(e.target.value)}
+                      placeholder="Paste SMS transaction here..."
+                      className="flex-1 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-white/30"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleParseSMS}
+                      disabled={isParsing || !smsText.trim()}
+                      className="rounded-xl bg-white/10 p-3 text-white transition-colors hover:bg-white/20 disabled:opacity-50"
+                    >
+                      {isParsing ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> : <MessageSquare size={20} />}
+                    </button>
+                  </div>
+                  
                   <div>
                     <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-white/40">Amount ({currencySymbol})</label>
                     <input

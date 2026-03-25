@@ -12,7 +12,7 @@ import { WhatIfSimulator } from './components/WhatIfSimulator';
 import { SplashScreen } from './components/SplashScreen';
 import { AIAssistant } from './components/AIAssistant';
 import { motion, AnimatePresence } from 'motion/react';
-import { parseExpenseWithAI, scanReceiptWithAI, parseAudioExpenseWithAI } from './services/geminiService';
+import { parseExpenseWithAI, scanReceiptWithAI, parseAudioExpenseWithAI, parseSMSTransactionWithAI, estimateCarbonFootprintWithAI } from './services/geminiService';
 import { Waves } from './components/Waves';
 import { cn } from './utils';
 import { useTheme } from './contexts/ThemeContext';
@@ -92,11 +92,13 @@ export default function App() {
     });
   }, []);
 
-  const addExpense = (data: { amount: number; categoryId: CategoryId; description: string; originalAmount?: number; originalCurrency?: string }) => {
+  const addExpense = async (data: { amount: number; categoryId: CategoryId; description: string; originalAmount?: number; originalCurrency?: string }) => {
+    const carbonFootprint = await estimateCarbonFootprintWithAI(data.description, data.amount);
     const newExpense: Expense = {
       id: Math.random().toString(36).substr(2, 9),
       ...data,
       date: new Date().toISOString(),
+      carbonFootprint: carbonFootprint?.carbonFootprint
     };
 
     // Check budget
@@ -129,6 +131,10 @@ export default function App() {
 
   const deleteExpense = (id: string) => {
     setExpenses((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const rateExpense = (id: string, score: number) => {
+    setExpenses(prev => prev.map(e => e.id === id ? { ...e, worthItScore: score } : e));
   };
 
   const exportData = (format: 'csv' | 'json' | 'pdf') => {
@@ -167,8 +173,8 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handleRateExpense = (id: string, rating: 'yes' | 'neutral' | 'no') => {
-    setExpenses(prev => prev.map(e => e.id === id ? { ...e, rating } : e));
+  const handleRateExpense = (id: string, rating: number) => {
+    setExpenses(prev => prev.map(e => e.id === id ? { ...e, worthItScore: rating } : e));
   };
 
   const unratedExpense = React.useMemo(() => {
@@ -618,7 +624,7 @@ export default function App() {
                       View All
                     </button>
                   </div>
-                  <ExpenseList expenses={expenses.slice(0, 5)} categories={categories} onDelete={deleteExpense} />
+                  <ExpenseList expenses={expenses.slice(0, 5)} categories={categories} onDelete={deleteExpense} onRate={rateExpense} />
                 </div>
               </div>
             )}
@@ -631,7 +637,7 @@ export default function App() {
                     View Less
                   </button>
                 </div>
-                <ExpenseList expenses={expenses} categories={categories} onDelete={deleteExpense} />
+                <ExpenseList expenses={expenses} categories={categories} onDelete={deleteExpense} onRate={rateExpense} />
               </div>
             )}
 

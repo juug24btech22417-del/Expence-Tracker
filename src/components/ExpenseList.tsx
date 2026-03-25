@@ -10,16 +10,18 @@ interface ExpenseListProps {
   expenses: Expense[];
   categories: CategoryDefinition[];
   onDelete: (id: string) => void;
+  onRate: (id: string, score: number) => void;
 }
 
 interface ExpenseItemProps {
   expense: Expense;
   category: CategoryDefinition;
   onDelete: (id: string) => void;
+  onRate: (id: string, score: number) => void;
   currencySymbol: string;
 }
 
-const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, currencySymbol }) => {
+const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, onRate, currencySymbol }) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = () => {
@@ -40,14 +42,14 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
         <div>
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium text-white">{expense.description}</p>
-            {expense.rating === 'no' && (
-              <span className="rounded-full bg-orange-500/20 border border-orange-500/50 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-orange-400">
-                Regret
+            {expense.worthItScore !== undefined && (
+              <span className="rounded-full bg-emerald-500/20 border border-emerald-500/50 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">
+                {expense.worthItScore}/5 Stars
               </span>
             )}
-            {expense.rating === 'yes' && (
-              <span className="rounded-full bg-emerald-500/20 border border-emerald-500/50 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">
-                Worth It
+            {expense.carbonFootprint !== undefined && (
+              <span className="rounded-full bg-sky-500/20 border border-sky-500/50 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-sky-400">
+                {expense.carbonFootprint.toFixed(1)} kg CO2e
               </span>
             )}
           </div>
@@ -57,6 +59,17 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
         </div>
       </div>
       <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((score) => (
+            <button
+              key={score}
+              onClick={() => onRate(expense.id, score)}
+              className={`text-xs transition-colors ${expense.worthItScore && expense.worthItScore >= score ? 'text-yellow-400' : 'text-white/20 hover:text-yellow-400/50'}`}
+            >
+              ★
+            </button>
+          ))}
+        </div>
         <div className="text-right">
           <p className="text-lg font-light text-white">-{currencySymbol}{expense.amount.toFixed(2)}</p>
           {expense.originalAmount && expense.originalCurrency && (
@@ -114,7 +127,7 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
   );
 };
 
-export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, onDelete }) => {
+export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, onDelete, onRate }) => {
   const { currencySymbol } = useCurrency();
   const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -137,6 +150,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, 
               expense={expense}
               category={category}
               onDelete={onDelete}
+              onRate={onRate}
               currencySymbol={currencySymbol}
             />
           );

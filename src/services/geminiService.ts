@@ -103,6 +103,18 @@ export const chatWithAIAssistant = async (
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   try {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const lastMonthExpenses = expenses.filter(e => new Date(e.date) >= thirtyDaysAgo);
+    const totalSpending = lastMonthExpenses.reduce((acc, e) => acc + e.amount, 0);
+    const avgDailySpending = totalSpending / 30;
+    const categorySpending: Record<string, number> = lastMonthExpenses.reduce((acc, e) => {
+      const categoryName = categories.find(c => c.id === e.categoryId)?.name || 'Other';
+      acc[categoryName] = (acc[categoryName] || 0) + (Number(e.amount) || 0);
+      return acc;
+    }, {} as Record<string, number>);
+    const topCategories: [string, number][] = Object.entries(categorySpending).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
     const context = `
       You are a helpful, concise financial AI assistant.
       User's Base Currency: ${baseCurrency}
@@ -112,7 +124,12 @@ export const chatWithAIAssistant = async (
       Current Budgets: ${JSON.stringify(budgets)}
       Recent Expenses (last 20): ${JSON.stringify(expenses.slice(0, 20).map(e => ({ amount: e.amount, category: categories.find(c => c.id === e.categoryId)?.name, desc: e.description, date: e.date })))}
       
-      If the user is asking a question about their spending, answer it concisely and helpfully.
+      Spending Summary (Last 30 Days):
+      - Total Spending: ${totalSpending.toFixed(2)} ${baseCurrency}
+      - Average Daily Spending: ${avgDailySpending.toFixed(2)} ${baseCurrency}
+      - Top Categories: ${topCategories.map(([cat, amt]) => `${cat}: ${amt.toFixed(2)} ${baseCurrency}`).join(', ')}
+      
+      If the user is asking a question about their spending, answer it concisely and helpfully using this summary.
       If the user is telling you about a new expense (e.g., "I just spent $50 on food" or "I spent 10 dollars on a taxi"), acknowledge it in the message AND provide the 'action' object to add it.
       CRITICAL: If the user mentions a currency different from their Base Currency (like dollars, euros, etc.), you MUST use the exchange rates provided if available. If not, use the googleSearch tool to find the LIVE exchange rate to ${baseCurrency} today, and convert the amount to ${baseCurrency} before putting it in the 'action.amount' field.
       Keep your message short, friendly, and under 2 sentences.
@@ -461,6 +478,63 @@ export const summarizeSpendingWithAI = async (
     return parseJSONResponse(response.text);
   } catch (error) {
     console.error("AI Spending Summary Error:", error);
+    return null;
+  }
+};
+
+export const parseSMSTransactionWithAI = async (smsText: string): Promise<{ amount: number; category: string; description: string; currency: string } | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Extract expense details from this bank SMS transaction: "${smsText}". 
+      Return JSON format. Keep the description very short (max 3 words).`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            amount: { type: Type.NUMBER },
+            currency: { type: Type.STRING },
+            category: { type: Type.STRING },
+            description: { type: Type.STRING }
+          },
+          required: ["amount", "currency", "category", "description"]
+        }
+      }
+    });
+
+    return parseJSONResponse(response.text);
+  } catch (error) {
+    console.error("AI SMS Parsing Error:", error);
+    return null;
+  }
+};
+
+export const estimateCarbonFootprintWithAI = async (description: string, amount: number): Promise<{ carbonFootprint: number } | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Estimate the carbon footprint in kg CO2e for this purchase: "${description}" with amount ${amount}. 
+      Return JSON format with 'carbonFootprint' as a number.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            carbonFootprint: { type: Type.NUMBER }
+          },
+          required: ["carbonFootprint"]
+        }
+      }
+    });
+
+    return parseJSONResponse(response.text);
+  } catch (error) {
+    console.error("AI Carbon Footprint Error:", error);
     return null;
   }
 };
