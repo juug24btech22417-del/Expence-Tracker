@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mic, Camera, LayoutDashboard, List, PieChart as ChartIcon, Sparkles, Wallet, Plane, Users, Square, Settings, AlertTriangle } from 'lucide-react';
-import { Expense, CategoryId, Budget, CategoryDefinition, DEFAULT_CATEGORIES } from './types';
+import { Expense, CategoryId, Budget, CategoryDefinition, DEFAULT_CATEGORIES, RegretStatus } from './types';
 import { GlassCard } from './components/GlassCard';
 import { ExpenseForm } from './components/ExpenseForm';
 import { ExpenseList } from './components/ExpenseList';
@@ -93,7 +93,10 @@ export default function App() {
   }, []);
 
   const addExpense = async (data: { amount: number; categoryId: CategoryId; description: string; originalAmount?: number; originalCurrency?: string }) => {
-    const carbonFootprint = await estimateCarbonFootprintWithAI(data.description, data.amount);
+    let carbonFootprint = null;
+    if (data.categoryId !== 'food') {
+      carbonFootprint = await estimateCarbonFootprintWithAI(data.description, data.amount);
+    }
     const newExpense: Expense = {
       id: Math.random().toString(36).substr(2, 9),
       ...data,
@@ -173,14 +176,14 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handleRateExpense = (id: string, rating: number) => {
-    setExpenses(prev => prev.map(e => e.id === id ? { ...e, worthItScore: rating } : e));
+  const handleRateExpense = (id: string, status: RegretStatus) => {
+    setExpenses(prev => prev.map(e => e.id === id ? { ...e, regretStatus: status } : e));
   };
 
   const unratedExpense = React.useMemo(() => {
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-    return expenses.find(e => !e.rating && new Date(e.date) <= threeDaysAgo);
+    return expenses.find(e => !e.regretStatus && new Date(e.date) <= threeDaysAgo);
   }, [expenses]);
 
   const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -588,13 +591,13 @@ export default function App() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={cn(
-                'flex min-w-[100px] flex-1 items-center justify-center gap-2 rounded-2xl border py-3 text-xs transition-all whitespace-nowrap',
+                'flex min-w-[80px] flex-1 items-center justify-center gap-1.5 rounded-2xl border py-3 text-[10px] transition-all',
                 activeTab === tab.id
                   ? 'border-white/20 bg-white/10 text-white font-bold shadow-[0_0_15px_rgba(255,255,255,0.1)]'
                   : 'border-transparent text-white/40 hover:text-white/60 font-medium'
               )}
             >
-              <tab.icon size={14} />
+              <tab.icon size={14} className="shrink-0" />
               {tab.label}
             </button>
           ))}

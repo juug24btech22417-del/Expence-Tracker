@@ -1,13 +1,13 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Expense } from '../types';
+import { Expense, RegretStatus } from '../types';
 import { GlassCard } from './GlassCard';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { Star } from 'lucide-react';
+import { ThumbsUp, Minus, ThumbsDown } from 'lucide-react';
 
 interface RegretNudgeProps {
   expense: Expense;
-  onRate: (id: string, rating: number) => void;
+  onRate: (id: string, rating: RegretStatus) => void;
 }
 
 export const RegretNudge: React.FC<RegretNudgeProps> = ({ expense, onRate }) => {
@@ -28,16 +28,28 @@ export const RegretNudge: React.FC<RegretNudgeProps> = ({ expense, onRate }) => 
             Was that {currencySymbol}{expense.amount.toFixed(2)} {expense.description} order worth it?
           </p>
           
-          <div className="flex gap-2 justify-center">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                onClick={() => onRate(expense.id, star)}
-                className="text-white/40 hover:text-yellow-400 transition-colors"
-              >
-                <Star size={24} fill={star <= (expense.worthItScore || 0) ? "currentColor" : "none"} />
-              </button>
-            ))}
+          <div className="flex gap-2">
+            <button
+              onClick={() => onRate(expense.id, 'yes')}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/50 text-white/70 hover:text-emerald-400 transition-all"
+            >
+              <ThumbsUp size={16} />
+              <span className="text-xs font-medium">Yes</span>
+            </button>
+            <button
+              onClick={() => onRate(expense.id, 'neutral')}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 hover:bg-white/20 border border-white/10 hover:border-white/30 text-white/70 hover:text-white transition-all"
+            >
+              <Minus size={16} />
+              <span className="text-xs font-medium">Neutral</span>
+            </button>
+            <button
+              onClick={() => onRate(expense.id, 'no')}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 hover:bg-orange-500/20 border border-white/10 hover:border-orange-500/50 text-white/70 hover:text-orange-400 transition-all"
+            >
+              <ThumbsDown size={16} />
+              <span className="text-xs font-medium">No</span>
+            </button>
           </div>
         </div>
       </GlassCard>

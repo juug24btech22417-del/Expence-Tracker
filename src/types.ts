@@ -1,5 +1,7 @@
 export type CategoryId = string;
 
+export type RegretStatus = 'yes' | 'neutral' | 'no';
+
 export interface CategoryDefinition {
   id: CategoryId;
   name: string;
@@ -14,7 +16,7 @@ export interface Expense {
   date: string; // ISO string
   originalAmount?: number;
   originalCurrency?: string;
-  worthItScore?: number; // 1-5
+  regretStatus?: RegretStatus;
   carbonFootprint?: number; // kg CO2e
 }
 

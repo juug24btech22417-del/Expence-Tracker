@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, Legend, Line } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, ComposedChart, Bar, XAxis, YAxis, Legend, Line } from 'recharts';
 import { Expense, CategoryDefinition, CategoryId } from '../types';
 import { GlassCard } from './GlassCard';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -79,7 +79,7 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
             />
             <Legend 
               verticalAlign="bottom" 
-              height={36} 
+              height={60} 
               iconType="circle"
               wrapperStyle={{ fontSize: '10px', paddingTop: '20px', color: 'rgba(255,255,255,0.6)' }}
             />
@@ -90,18 +90,18 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
       <GlassCard className="h-[350px]">
         <h3 className="mb-4 text-xs font-medium uppercase tracking-wider text-white/40">Daily Spending (Last 7 Days)</h3>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={combinedData}>
+          <ComposedChart data={combinedData}>
             <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
             <YAxis hide />
             <Tooltip
               cursor={{ fill: 'rgba(255,255,255,0.05)' }}
               contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', color: '#fff' }}
               itemStyle={{ color: '#fff', fontSize: '12px' }}
-              formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, 'Amount']}
+              formatter={(value: number, name: string) => [`${currencySymbol}${value.toFixed(2)}`, name === 'trend' ? 'Average' : 'Amount']}
             />
             <Bar dataKey="amount" fill="#fff" radius={[4, 4, 0, 0]} />
             <Line type="monotone" dataKey="trend" stroke="#f97316" strokeWidth={2} dot={false} />
-          </BarChart>
+          </ComposedChart>
         </ResponsiveContainer>
       </GlassCard>
     </div>

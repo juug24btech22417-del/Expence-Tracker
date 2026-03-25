@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Expense, CategoryDefinition } from '../types';
+import { Expense, CategoryDefinition, RegretStatus } from '../types';
 import { GlassCard } from './GlassCard';
 import { format } from 'date-fns';
 import { Trash2 } from 'lucide-react';
@@ -10,14 +10,14 @@ interface ExpenseListProps {
   expenses: Expense[];
   categories: CategoryDefinition[];
   onDelete: (id: string) => void;
-  onRate: (id: string, score: number) => void;
+  onRate: (id: string, status: RegretStatus) => void;
 }
 
 interface ExpenseItemProps {
   expense: Expense;
   category: CategoryDefinition;
   onDelete: (id: string) => void;
-  onRate: (id: string, score: number) => void;
+  onRate: (id: string, status: RegretStatus) => void;
   currencySymbol: string;
 }
 
@@ -40,11 +40,15 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
           style={{ backgroundColor: `${category.color}40`, border: `1px solid ${category.color}` }}
         />
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             <p className="text-sm font-medium text-white">{expense.description}</p>
-            {expense.worthItScore !== undefined && (
-              <span className="rounded-full bg-emerald-500/20 border border-emerald-500/50 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">
-                {expense.worthItScore}/5 Stars
+            {expense.regretStatus && (
+              <span className={`rounded-full border px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                expense.regretStatus === 'yes' ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' :
+                expense.regretStatus === 'no' ? 'bg-orange-500/20 border-orange-500/50 text-orange-400' :
+                'bg-white/10 border-white/20 text-white/60'
+              }`}>
+                {expense.regretStatus === 'yes' ? 'Worth it' : expense.regretStatus === 'no' ? 'Regret' : 'Neutral'}
               </span>
             )}
             {expense.carbonFootprint !== undefined && (
@@ -59,17 +63,6 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map((score) => (
-            <button
-              key={score}
-              onClick={() => onRate(expense.id, score)}
-              className={`text-xs transition-colors ${expense.worthItScore && expense.worthItScore >= score ? 'text-yellow-400' : 'text-white/20 hover:text-yellow-400/50'}`}
-            >
-              ★
-            </button>
-          ))}
-        </div>
         <div className="text-right">
           <p className="text-lg font-light text-white">-{currencySymbol}{expense.amount.toFixed(2)}</p>
           {expense.originalAmount && expense.originalCurrency && (

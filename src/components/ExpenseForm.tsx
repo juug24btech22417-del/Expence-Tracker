@@ -127,7 +127,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
                           type="button"
                           onClick={() => setCategoryId(cat.id)}
                           className={cn(
-                            'rounded-lg border border-white/10 p-2 text-xs transition-all',
+                            'rounded-lg border border-white/10 p-2 text-xs transition-all truncate text-center',
                             categoryId === cat.id ? 'bg-white text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'
                           )}
                         >
