@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, Legend, Line } from 'recharts';
 import { Expense, CategoryDefinition, CategoryId } from '../types';
 import { GlassCard } from './GlassCard';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -45,6 +45,12 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
     };
   });
 
+  // Calculate simple trendline (average)
+  const totalAmount = dailyData.reduce((sum, d) => sum + d.amount, 0);
+  const averageAmount = totalAmount / dailyData.length;
+  const trendData = dailyData.map(() => ({ trend: averageAmount }));
+  const combinedData = dailyData.map((d, i) => ({ ...d, ...trendData[i] }));
+
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <GlassCard className="h-[350px]">
@@ -84,7 +90,7 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
       <GlassCard className="h-[350px]">
         <h3 className="mb-4 text-xs font-medium uppercase tracking-wider text-white/40">Daily Spending (Last 7 Days)</h3>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={dailyData}>
+          <BarChart data={combinedData}>
             <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
             <YAxis hide />
             <Tooltip
@@ -94,6 +100,7 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
               formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, 'Amount']}
             />
             <Bar dataKey="amount" fill="#fff" radius={[4, 4, 0, 0]} />
+            <Line type="monotone" dataKey="trend" stroke="#f97316" strokeWidth={2} dot={false} />
           </BarChart>
         </ResponsiveContainer>
       </GlassCard>

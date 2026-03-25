@@ -4,10 +4,14 @@ import App from './App.tsx';
 import './index.css';
 import { CurrencyProvider } from './contexts/CurrencyContext.tsx';
 
+import { ThemeProvider } from './contexts/ThemeContext.tsx';
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <CurrencyProvider>
-      <App />
-    </CurrencyProvider>
+    <ThemeProvider>
+      <CurrencyProvider>
+        <App />
+      </CurrencyProvider>
+    </ThemeProvider>
   </StrictMode>,
 );

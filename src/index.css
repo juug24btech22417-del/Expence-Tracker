@@ -5,8 +5,10 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
+@variant dark (&:where(.dark, .dark *));
+
 body {
-  @apply font-sans antialiased;
+  @apply font-sans antialiased bg-white text-gray-900 dark:bg-gray-950 dark:text-white transition-colors duration-300;
 }
 
 ::view-transition-group(*),

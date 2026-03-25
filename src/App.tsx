@@ -15,13 +15,17 @@ import { motion, AnimatePresence } from 'motion/react';
 import { parseExpenseWithAI, scanReceiptWithAI, parseAudioExpenseWithAI } from './services/geminiService';
 import { Waves } from './components/Waves';
 import { cn } from './utils';
+import { useTheme } from './contexts/ThemeContext';
 import { useCurrency } from './contexts/CurrencyContext';
 import { CURRENCIES } from './constants';
 import { RegretInsights } from './components/RegretInsights';
 import { AISpendingSummary } from './components/AISpendingSummary';
 import { RegretNudge } from './components/RegretNudge';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 export default function App() {
+  const { theme, toggleTheme } = useTheme();
   const { baseCurrency, setBaseCurrency, currencySymbol, exchangeRates, setExchangeRate, travelMode, setTravelMode } = useCurrency();
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('expenses');
@@ -127,7 +131,19 @@ export default function App() {
     setExpenses((prev) => prev.filter((e) => e.id !== id));
   };
 
-  const exportData = (format: 'csv' | 'json') => {
+  const exportData = (format: 'csv' | 'json' | 'pdf') => {
+    if (format === 'pdf') {
+      const doc = new jsPDF();
+      doc.text('Expense Summary', 14, 15);
+      (doc as any).autoTable({
+        head: [['ID', 'Date', 'Amount', 'Currency', 'Category', 'Description']],
+        body: expenses.map(e => [e.id, e.date, e.amount, e.originalCurrency || baseCurrency, e.categoryId, e.description]),
+        startY: 20,
+      });
+      doc.save('expenses.pdf');
+      return;
+    }
+
     let dataStr = '';
     let mimeType = '';
     let fileName = `expenses.${format}`;
@@ -393,13 +409,24 @@ export default function App() {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-black/80 p-6 shadow-2xl backdrop-blur-xl"
+                className="relative w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl border border-gray-200/20 bg-white/90 p-6 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-black/80"
               >
-                <h3 className="mb-6 text-xl font-light text-white">Settings</h3>
+                <h3 className="mb-6 text-xl font-light text-gray-900 dark:text-white">Settings</h3>
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40">
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40 dark:text-gray-400">
+                      Theme
+                    </label>
+                    <button
+                      onClick={toggleTheme}
+                      className="w-full rounded-xl border border-gray-200/20 bg-gray-100/10 p-3 text-center text-gray-800 dark:text-white/60 transition-all hover:bg-gray-200/20 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                    >
+                      {theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+                    </button>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40 dark:text-gray-400">
                       Base Currency
                     </label>
                     <div className="grid grid-cols-3 gap-2">
@@ -411,7 +438,7 @@ export default function App() {
                             "rounded-xl border p-3 text-center transition-all",
                             baseCurrency === c.code
                               ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                              : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                              : "border-gray-200/20 bg-gray-100/50 text-gray-800 hover:bg-gray-200/20 hover:text-gray-900 dark:border-white/10 dark:bg-white/5 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-white"
                           )}
                         >
                           <span className="block text-lg font-light">{c.symbol}</span>
@@ -419,7 +446,7 @@ export default function App() {
                         </button>
                       ))}
                     </div>
-                    <p className="mt-3 text-xs text-white/40">
+                    <p className="mt-3 text-xs text-gray-500 dark:text-white/40">
                       Changing the base currency will apply to all new expenses and AI conversions.
                     </p>
                   </div>
@@ -433,7 +460,7 @@ export default function App() {
                         "w-full rounded-xl border p-3 text-center transition-all",
                         travelMode
                           ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                          : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                          : "border-gray-200/20 bg-gray-100/50 text-gray-800 hover:bg-gray-200/20 hover:text-gray-900 dark:border-white/10 dark:bg-white/5 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-white"
                       )}
                     >
                       {travelMode ? 'Enabled' : 'Disabled'}
@@ -458,6 +485,12 @@ export default function App() {
                         className="rounded-xl border border-white/10 bg-white/5 p-3 text-center text-white/60 transition-all hover:bg-white/10 hover:text-white"
                       >
                         Export JSON
+                      </button>
+                      <button
+                        onClick={() => exportData('pdf')}
+                        className="col-span-2 rounded-xl border border-white/10 bg-white/5 p-3 text-center text-white/60 transition-all hover:bg-white/10 hover:text-white"
+                      >
+                        Export PDF
                       </button>
                     </div>
                   </div>
@@ -592,7 +625,12 @@ export default function App() {
 
             {activeTab === 'history' && (
               <div>
-                <h3 className="mb-6 text-sm font-medium text-white/60">Transaction History</h3>
+                <div className="mb-6 flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-white/60">Transaction History</h3>
+                  <button onClick={() => setActiveTab('dashboard')} className="text-xs text-indigo-400 hover:underline">
+                    View Less
+                  </button>
+                </div>
                 <ExpenseList expenses={expenses} categories={categories} onDelete={deleteExpense} />
               </div>
             )}
