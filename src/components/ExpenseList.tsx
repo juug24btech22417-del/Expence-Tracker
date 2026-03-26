@@ -68,11 +68,6 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
                 )}
               </div>
             )}
-            {expense.carbonFootprint !== undefined && category.id !== 'transport' && (
-              <span className="rounded-full bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-sky-400/60">
-                {expense.carbonFootprint.toFixed(1)} kg CO2e
-              </span>
-            )}
           </div>
           <p className="text-[10px] uppercase tracking-widest text-white/40">
             {category.name} • {format(new Date(expense.date), 'MMM d')}
