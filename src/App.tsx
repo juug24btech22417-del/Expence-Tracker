@@ -92,7 +92,7 @@ export default function App() {
     });
   }, []);
 
-  const addExpense = async (data: { amount: number; categoryId: CategoryId; description: string; originalAmount?: number; originalCurrency?: string }) => {
+  const addExpense = async (data: { amount: number; categoryId: CategoryId; description: string; date?: string; originalAmount?: number; originalCurrency?: string }) => {
     let carbonFootprint = null;
     if (data.categoryId !== 'food') {
       carbonFootprint = await estimateCarbonFootprintWithAI(data.description, data.amount);
@@ -100,7 +100,7 @@ export default function App() {
     const newExpense: Expense = {
       id: Math.random().toString(36).substr(2, 9),
       ...data,
-      date: new Date().toISOString(),
+      date: data.date || new Date().toISOString(),
       carbonFootprint: carbonFootprint?.carbonFootprint
     };
 
@@ -132,12 +132,12 @@ export default function App() {
     setExpenses((prev) => [newExpense, ...prev]);
   };
 
-  const deleteExpense = (id: string) => {
-    setExpenses((prev) => prev.filter((e) => e.id !== id));
+  const updateExpense = (id: string, updates: Partial<Expense>) => {
+    setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
   };
 
-  const rateExpense = (id: string, score: number) => {
-    setExpenses(prev => prev.map(e => e.id === id ? { ...e, worthItScore: score } : e));
+  const deleteExpense = (id: string) => {
+    setExpenses((prev) => prev.filter((e) => e.id !== id));
   };
 
   const exportData = (format: 'csv' | 'json' | 'pdf') => {
@@ -627,7 +627,13 @@ export default function App() {
                       View All
                     </button>
                   </div>
-                  <ExpenseList expenses={expenses.slice(0, 5)} categories={categories} onDelete={deleteExpense} onRate={rateExpense} />
+                  <ExpenseList 
+                    expenses={expenses.slice(0, 5)} 
+                    categories={categories} 
+                    onDelete={deleteExpense} 
+                    onRate={handleRateExpense} 
+                    onUpdate={updateExpense}
+                  />
                 </div>
               </div>
             )}
@@ -640,7 +646,13 @@ export default function App() {
                     View Less
                   </button>
                 </div>
-                <ExpenseList expenses={expenses} categories={categories} onDelete={deleteExpense} onRate={rateExpense} />
+                <ExpenseList 
+                  expenses={expenses} 
+                  categories={categories} 
+                  onDelete={deleteExpense} 
+                  onRate={handleRateExpense} 
+                  onUpdate={updateExpense}
+                />
               </div>
             )}
 

@@ -2,15 +2,20 @@ import React, { useState } from 'react';
 import { Expense, CategoryDefinition, RegretStatus } from '../types';
 import { GlassCard } from './GlassCard';
 import { format } from 'date-fns';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Edit2, ArrowUpDown, Calendar, DollarSign, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { EditExpenseModal } from './EditExpenseModal';
+import { cn } from '../utils';
+
+type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc' | 'category';
 
 interface ExpenseListProps {
   expenses: Expense[];
   categories: CategoryDefinition[];
   onDelete: (id: string) => void;
   onRate: (id: string, status: RegretStatus) => void;
+  onUpdate: (id: string, updates: Partial<Expense>) => void;
 }
 
 interface ExpenseItemProps {
@@ -18,10 +23,11 @@ interface ExpenseItemProps {
   category: CategoryDefinition;
   onDelete: (id: string) => void;
   onRate: (id: string, status: RegretStatus) => void;
+  onEdit: (expense: Expense) => void;
   currencySymbol: string;
 }
 
-const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, onRate, currencySymbol }) => {
+const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, onRate, onEdit, currencySymbol }) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = () => {
@@ -51,8 +57,20 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
                 {expense.regretStatus === 'yes' ? 'Worth it' : expense.regretStatus === 'no' ? 'Regret' : 'Neutral'}
               </span>
             )}
-            {expense.carbonFootprint !== undefined && (
-              <span className="rounded-full bg-sky-500/20 border border-sky-500/50 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-sky-400">
+            {expense.carbonFootprint !== undefined && category.id === 'transport' && (
+              <div className="flex flex-col gap-1 mt-1 sm:mt-0 sm:flex-row sm:items-center">
+                <span className="rounded-full bg-sky-500/20 border border-sky-500/50 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-sky-400 whitespace-nowrap">
+                  {expense.carbonFootprint.toFixed(1)} kg CO2e
+                </span>
+                {expense.amount > 0 && (
+                  <span className="text-[7px] text-sky-400/60 font-medium uppercase tracking-tighter sm:ml-1">
+                    ({(expense.carbonFootprint / expense.amount).toFixed(2)} kg/{currencySymbol})
+                  </span>
+                )}
+              </div>
+            )}
+            {expense.carbonFootprint !== undefined && category.id !== 'transport' && (
+              <span className="rounded-full bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-sky-400/60">
                 {expense.carbonFootprint.toFixed(1)} kg CO2e
               </span>
             )}
@@ -71,13 +89,22 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
             </p>
           )}
         </div>
-        <button
-          onClick={handleDelete}
-          disabled={isDeleting}
-          className={`transition-opacity text-white/40 hover:text-red-400 ${isDeleting ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}
-        >
-          <Trash2 size={16} />
-        </button>
+        <div className={`flex items-center gap-2 transition-opacity ${isDeleting ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}>
+          <button
+            onClick={() => onEdit(expense)}
+            disabled={isDeleting}
+            className="text-white/40 hover:text-white"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="text-white/40 hover:text-red-400"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
     </GlassCard>
   );
@@ -120,9 +147,29 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
   );
 };
 
-export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, onDelete, onRate }) => {
+export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, onDelete, onRate, onUpdate }) => {
   const { currencySymbol } = useCurrency();
-  const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
+
+  const sortedExpenses = [...expenses].sort((a, b) => {
+    switch (sortBy) {
+      case 'date-desc':
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      case 'date-asc':
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      case 'amount-desc':
+        return b.amount - a.amount;
+      case 'amount-asc':
+        return a.amount - b.amount;
+      case 'category':
+        const catA = categories.find(c => c.id === a.categoryId)?.name || '';
+        const catB = categories.find(c => c.id === b.categoryId)?.name || '';
+        return catA.localeCompare(catB);
+      default:
+        return 0;
+    }
+  });
 
   if (expenses.length === 0) {
     return (
@@ -133,7 +180,49 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, 
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-white/40">
+          <ArrowUpDown size={10} />
+          <span>Sort By</span>
+        </div>
+        <div className="flex gap-2">
+          {[
+            { id: 'date-desc', icon: Calendar, label: 'Newest' },
+            { id: 'amount-desc', icon: DollarSign, label: 'Highest' },
+            { id: 'category', icon: Tag, label: 'Category' },
+          ].map((option) => (
+            <button
+              key={option.id}
+              onClick={() => {
+                if (sortBy === option.id) {
+                  // Toggle between desc and asc for date and amount
+                  if (option.id === 'date-desc') setSortBy('date-asc');
+                  else if (option.id === 'date-asc') setSortBy('date-desc');
+                  else if (option.id === 'amount-desc') setSortBy('amount-asc');
+                  else if (option.id === 'amount-asc') setSortBy('amount-desc');
+                } else {
+                  setSortBy(option.id as SortOption);
+                }
+              }}
+              className={cn(
+                'flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] transition-all',
+                sortBy.startsWith(option.id.split('-')[0])
+                  ? 'border-white/20 bg-white/10 text-white'
+                  : 'border-transparent bg-white/5 text-white/40 hover:bg-white/10'
+              )}
+            >
+              <option.icon size={10} />
+              <span>{option.label}</span>
+              {sortBy === option.id && (option.id.includes('desc') || option.id.includes('asc')) && (
+                <span className="ml-0.5 opacity-60">{sortBy.includes('desc') ? '↓' : '↑'}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3">
       <AnimatePresence mode="popLayout">
         {sortedExpenses.map((expense) => {
           const category = categories.find(c => c.id === expense.categoryId) || categories[categories.length - 1];
@@ -144,11 +233,24 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, 
               category={category}
               onDelete={onDelete}
               onRate={onRate}
+              onEdit={setEditingExpense}
               currencySymbol={currencySymbol}
             />
           );
         })}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {editingExpense && (
+          <EditExpenseModal 
+            expense={editingExpense}
+            categories={categories}
+            onClose={() => setEditingExpense(null)}
+            onUpdate={onUpdate}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  </div>
   );
 };

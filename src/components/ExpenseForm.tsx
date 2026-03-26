@@ -18,6 +18,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState<CategoryId>(categories[0]?.id || 'other');
   const [description, setDescription] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [smsText, setSmsText] = useState('');
   const [isParsing, setIsParsing] = useState(false);
 
@@ -45,10 +46,12 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
       amount: Number(amount),
       categoryId,
       description: description || categories.find(c => c.id === categoryId)?.name || 'Expense',
+      date: new Date(date).toISOString(),
     });
     
     setAmount('');
     setDescription('');
+    setDate(new Date().toISOString().split('T')[0]);
     setSmsText('');
     setIsOpen(false);
   };
@@ -144,6 +147,16 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="What was it for?"
+                      className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-white/30"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-white/40">Date</label>
+                    <input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
                       className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-white/30"
                     />
                   </div>
