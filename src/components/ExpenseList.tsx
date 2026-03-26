@@ -32,10 +32,9 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
 
   const handleDelete = () => {
     setIsDeleting(true);
-    // Wait for the disintegration animation to finish before actually removing from the list
     setTimeout(() => {
       onDelete(expense.id);
-    }, 1500); // 1.5s matches the animation duration
+    }, 1500);
   };
 
   const content = (
@@ -76,7 +75,7 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
             )}
           </div>
           <p className="text-[10px] uppercase tracking-widest text-white/40">
-            {category.name} • {format(new Date(expense.date), 'MMM d, h:mm a')}
+            {category.name} • {format(new Date(expense.date), 'MMM d')}
           </p>
         </div>
       </div>

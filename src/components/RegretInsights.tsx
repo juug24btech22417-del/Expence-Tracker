@@ -3,7 +3,7 @@ import { Expense, CategoryDefinition } from '../types';
 import { GlassCard } from './GlassCard';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, LineChart, Line } from 'recharts';
-import { startOfMonth, isAfter, format, parseISO, subDays, eachDayOfInterval } from 'date-fns';
+import { startOfMonth, isAfter, format, subDays, eachDayOfInterval } from 'date-fns';
 
 interface RegretInsightsProps {
   expenses: Expense[];
@@ -19,7 +19,7 @@ export const RegretInsights: React.FC<RegretInsightsProps> = ({ expenses, catego
 
     const regretExpenses = expenses.filter(e => e.rating === 'no');
     const worthItExpenses = expenses.filter(e => e.rating === 'yes');
-    const currentMonthRegrets = regretExpenses.filter(e => isAfter(parseISO(e.date), startOfCurrentMonth));
+    const currentMonthRegrets = regretExpenses.filter(e => isAfter(new Date(e.date), startOfCurrentMonth));
 
     const totalRegretSpending = currentMonthRegrets.reduce((sum, e) => sum + e.amount, 0);
     const ratedExpenses = expenses.filter(e => e.rating);
@@ -27,7 +27,7 @@ export const RegretInsights: React.FC<RegretInsightsProps> = ({ expenses, catego
 
     // Time of day (Regret)
     const timeCount = regretExpenses.reduce((acc, e) => {
-      const hour = parseISO(e.date).getHours();
+      const hour = new Date(e.date).getHours();
       let timeOfDay = 'Night';
       if (hour >= 5 && hour < 12) timeOfDay = 'Morning';
       else if (hour >= 12 && hour < 17) timeOfDay = 'Afternoon';
@@ -83,7 +83,7 @@ export const RegretInsights: React.FC<RegretInsightsProps> = ({ expenses, catego
 
     // Time of day (Worth It)
     const worthItTimeCount = worthItExpenses.reduce((acc, e) => {
-      const hour = parseISO(e.date).getHours();
+      const hour = new Date(e.date).getHours();
       let timeOfDay = 'Night';
       if (hour >= 5 && hour < 12) timeOfDay = 'Morning';
       else if (hour >= 12 && hour < 17) timeOfDay = 'Afternoon';
@@ -123,7 +123,7 @@ export const RegretInsights: React.FC<RegretInsightsProps> = ({ expenses, catego
     const trendData = last30Days.map(day => {
       const dayStr = format(day, 'MMM dd');
       const amount = regretExpenses
-        .filter(e => format(parseISO(e.date), 'MMM dd') === dayStr)
+        .filter(e => format(new Date(e.date), 'MMM dd') === dayStr)
         .reduce((sum, e) => sum + e.amount, 0);
       return { date: dayStr, amount };
     });
@@ -157,20 +157,20 @@ export const RegretInsights: React.FC<RegretInsightsProps> = ({ expenses, catego
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <GlassCard className="p-4">
-          <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">This Month's Regret</p>
+        <GlassCard className="p-4 border-orange-500/20 bg-orange-500/5">
+          <p className="text-[10px] uppercase tracking-widest text-orange-400/60 mb-1">Regret Spending</p>
           <p className="text-2xl font-light text-orange-400">{currencySymbol}{metrics.totalRegretSpending.toFixed(2)}</p>
         </GlassCard>
-        <GlassCard className="p-4">
-          <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">% of Rated Expenses</p>
+        <GlassCard className="p-4 border-white/10">
+          <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">Regret Rate</p>
           <p className="text-2xl font-light text-white">{metrics.percentageRegret.toFixed(1)}%</p>
         </GlassCard>
-        <GlassCard className="p-4">
+        <GlassCard className="p-4 border-white/10">
           <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">Top Regret Vendor</p>
           <p className="text-lg font-medium text-white capitalize truncate">{metrics.mostCommonVendor}</p>
         </GlassCard>
-        <GlassCard className="p-4">
-          <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">Top Worth It Vendor</p>
+        <GlassCard className="p-4 border-emerald-500/20 bg-emerald-500/5">
+          <p className="text-[10px] uppercase tracking-widest text-emerald-400/60 mb-1">Top Worth It Vendor</p>
           <p className="text-lg font-medium text-emerald-400 capitalize truncate">{metrics.mostCommonWorthItVendor}</p>
         </GlassCard>
       </div>

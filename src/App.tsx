@@ -110,7 +110,7 @@ export default function App() {
     }
 
     let carbonFootprint = null;
-    if (data.categoryId !== 'food') {
+    if (data.categoryId === 'transport') {
       carbonFootprint = await estimateCarbonFootprintWithAI(data.description, finalAmount);
     }
     const newExpense: Expense = {
@@ -695,26 +695,13 @@ export default function App() {
                 <h3 className="mb-2 text-sm font-medium text-white/60">Deep Insights</h3>
                 <Charts expenses={expenses} categories={categories} />
                 <WhatIfSimulator expenses={expenses} categories={categories} />
-                <GlassCard className="flex items-center gap-4 border-indigo-500/20 bg-indigo-500/5">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-400">
-                    <Sparkles size={20} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">AI Spending Tip</p>
-                    <p className="text-xs text-white/60">
-                      {expenses.length > 3 
-                        ? "You've spent most on " + (categories.find(c => c.id === Object.entries(expenses.reduce((acc, e) => ({...acc, [e.categoryId]: (acc[e.categoryId] || 0) + e.amount}), {} as any)).sort((a: any, b: any) => b[1] - a[1])[0][0])?.name || 'one category') + " lately. Consider setting a budget!"
-                        : "Add more expenses to get personalized AI insights."}
-                    </p>
-                  </div>
-                </GlassCard>
+                <AISpendingSummary expenses={expenses} categories={categories} />
               </div>
             )}
 
             {activeTab === 'regret' && (
               <div className="space-y-6">
                 <RegretInsights expenses={expenses} categories={categories} />
-                <AISpendingSummary expenses={expenses} categories={categories} />
               </div>
             )}
             {activeTab === 'subscriptions' && (

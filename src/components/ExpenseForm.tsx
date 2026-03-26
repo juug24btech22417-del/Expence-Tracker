@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { parseSMSTransactionWithAI } from '../services/geminiService';
+import { CURRENCIES } from '../constants';
 
 interface ExpenseFormProps {
   categories: CategoryDefinition[];
@@ -14,15 +15,28 @@ interface ExpenseFormProps {
 
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) => {
   const { currencySymbol } = useCurrency();
+  const getLocalDateString = () => {
+    const d = new Date();
+    const offset = d.getTimezoneOffset();
+    const localDate = new Date(d.getTime() - offset * 60000);
+    return localDate.toISOString().split('T')[0];
+  };
+
   const [isOpen, setIsOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [originalAmount, setOriginalAmount] = useState('');
   const [originalCurrency, setOriginalCurrency] = useState('INR');
   const [categoryId, setCategoryId] = useState<CategoryId>(categories[0]?.id || 'other');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getLocalDateString());
   const [smsText, setSmsText] = useState('');
   const [isParsing, setIsParsing] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setDate(getLocalDateString());
+    }
+  }, [isOpen]);
 
   const handleParseSMS = async () => {
     if (!smsText.trim()) return;
@@ -116,7 +130,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
                   
                   <div>
                     <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-white/40">Amount ({currencySymbol})</label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="number"
                         step="0.01"
@@ -125,13 +139,15 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
                         placeholder="0.00"
                         className="flex-1 rounded-xl border border-white/10 bg-white/5 p-3 text-2xl font-light text-white outline-none focus:border-white/30"
                       />
-                      <input
-                        type="text"
+                      <select
                         value={originalCurrency}
-                        onChange={(e) => setOriginalCurrency(e.target.value.toUpperCase())}
-                        placeholder="INR"
-                        className="w-20 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-white/30"
-                      />
+                        onChange={(e) => setOriginalCurrency(e.target.value)}
+                        className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-white/30"
+                      >
+                        {CURRENCIES.map(c => (
+                          <option key={c.code} value={c.code} className="bg-black text-white">{c.code} ({c.symbol})</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 

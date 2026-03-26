@@ -19,7 +19,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ expenses, budgets, cat
   const { baseCurrency } = useCurrency();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; content: string; isAudio?: boolean }[]>([
-    { role: 'ai', content: 'Hi! I can help you add expenses or answer questions about your spending. What do you need?' }
+    { role: 'ai', content: 'Hi! I can help you add expenses or answer questions about your spending. I also track your carbon footprint for transport expenses to help you understand the environmental impact of your travel choices. What do you need?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -127,14 +127,14 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ expenses, budgets, cat
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 right-8 flex h-14 w-14 items-center justify-center rounded-full bg-white text-black shadow-lg shadow-white/20 transition-transform hover:scale-110 active:scale-95 z-40"
+        className="fixed bottom-24 right-8 flex h-14 w-14 items-center justify-center rounded-full bg-white text-black shadow-lg shadow-white/20 transition-transform hover:scale-110 active:scale-95 z-50"
       >
         <MessageSquare size={24} />
       </button>
 
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-50 flex items-end justify-end p-4 sm:p-8 pointer-events-none">
+          <div className="fixed inset-0 z-[60] flex items-end justify-end p-4 sm:p-8 pointer-events-none">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
