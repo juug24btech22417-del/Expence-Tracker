@@ -25,6 +25,17 @@ export interface Budget {
   amount: number;
 }
 
+export interface Subscription {
+  id: string;
+  name: string;
+  amount: number;
+  categoryId: CategoryId;
+  billingCycle: 'monthly' | 'yearly';
+  lastPaymentDate: string;
+  nextRenewalDate: string;
+  status: 'active' | 'cancelled';
+}
+
 export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
   { id: 'food', name: 'Food', color: '#A3B1C6' },
   { id: 'transport', name: 'Transport', color: '#B4A7D6' },

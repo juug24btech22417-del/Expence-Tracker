@@ -9,13 +9,15 @@ import { parseSMSTransactionWithAI } from '../services/geminiService';
 
 interface ExpenseFormProps {
   categories: CategoryDefinition[];
-  onAdd: (expense: { amount: number; categoryId: CategoryId; description: string }) => void;
+  onAdd: (expense: { amount: number; categoryId: CategoryId; description: string; date?: string; originalAmount?: number; originalCurrency?: string }) => void;
 }
 
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) => {
   const { currencySymbol } = useCurrency();
   const [isOpen, setIsOpen] = useState(false);
   const [amount, setAmount] = useState('');
+  const [originalAmount, setOriginalAmount] = useState('');
+  const [originalCurrency, setOriginalCurrency] = useState('INR');
   const [categoryId, setCategoryId] = useState<CategoryId>(categories[0]?.id || 'other');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -47,9 +49,13 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
       categoryId,
       description: description || categories.find(c => c.id === categoryId)?.name || 'Expense',
       date: new Date(date).toISOString(),
+      originalAmount: originalAmount ? Number(originalAmount) : undefined,
+      originalCurrency: originalCurrency !== 'INR' ? originalCurrency : undefined,
     });
     
     setAmount('');
+    setOriginalAmount('');
+    setOriginalCurrency('INR');
     setDescription('');
     setDate(new Date().toISOString().split('T')[0]);
     setSmsText('');
@@ -110,15 +116,23 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
                   
                   <div>
                     <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-white/40">Amount ({currencySymbol})</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-2xl font-light text-white outline-none focus:border-white/30"
-                      autoFocus
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="0.00"
+                        className="flex-1 rounded-xl border border-white/10 bg-white/5 p-3 text-2xl font-light text-white outline-none focus:border-white/30"
+                      />
+                      <input
+                        type="text"
+                        value={originalCurrency}
+                        onChange={(e) => setOriginalCurrency(e.target.value.toUpperCase())}
+                        placeholder="INR"
+                        className="w-20 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-white/30"
+                      />
+                    </div>
                   </div>
 
                   <div>

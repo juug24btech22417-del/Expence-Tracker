@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, Camera, LayoutDashboard, List, PieChart as ChartIcon, Sparkles, Wallet, Plane, Users, Square, Settings, AlertTriangle } from 'lucide-react';
-import { Expense, CategoryId, Budget, CategoryDefinition, DEFAULT_CATEGORIES, RegretStatus } from './types';
+import { Mic, Camera, LayoutDashboard, List, PieChart as ChartIcon, Sparkles, Wallet, Plane, Users, Square, Settings, AlertTriangle, CreditCard } from 'lucide-react';
+import { Expense, CategoryId, Budget, CategoryDefinition, DEFAULT_CATEGORIES, RegretStatus, Subscription } from './types';
 import { GlassCard } from './components/GlassCard';
 import { ExpenseForm } from './components/ExpenseForm';
 import { ExpenseList } from './components/ExpenseList';
@@ -10,6 +10,8 @@ import { BudgetManager } from './components/BudgetManager';
 import { SplitBillModal } from './components/SplitBillModal';
 import { WhatIfSimulator } from './components/WhatIfSimulator';
 import { SplashScreen } from './components/SplashScreen';
+import { SubscriptionManager } from './components/SubscriptionManager';
+import { SubscriptionAlerts } from './components/SubscriptionAlerts';
 import { AIAssistant } from './components/AIAssistant';
 import { motion, AnimatePresence } from 'motion/react';
 import { parseExpenseWithAI, scanReceiptWithAI, parseAudioExpenseWithAI, parseSMSTransactionWithAI, estimateCarbonFootprintWithAI } from './services/geminiService';
@@ -51,6 +53,7 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [budgetAlert, setBudgetAlert] = useState<{ message: string, type: 'warning' | 'danger' } | null>(null);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
 
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const audioChunksRef = React.useRef<Blob[]>([]);
@@ -92,14 +95,28 @@ export default function App() {
     });
   }, []);
 
+  const addSubscription = (sub: Subscription) => {
+    setSubscriptions(prev => [...prev, sub]);
+  };
+
+  const removeSubscription = (id: string) => {
+    setSubscriptions(prev => prev.filter(s => s.id !== id));
+  };
+
   const addExpense = async (data: { amount: number; categoryId: CategoryId; description: string; date?: string; originalAmount?: number; originalCurrency?: string }) => {
+    let finalAmount = data.amount;
+    if (data.originalCurrency && data.originalCurrency !== 'INR' && exchangeRates[data.originalCurrency]) {
+      finalAmount = data.amount * exchangeRates[data.originalCurrency];
+    }
+
     let carbonFootprint = null;
     if (data.categoryId !== 'food') {
-      carbonFootprint = await estimateCarbonFootprintWithAI(data.description, data.amount);
+      carbonFootprint = await estimateCarbonFootprintWithAI(data.description, finalAmount);
     }
     const newExpense: Expense = {
       id: Math.random().toString(36).substr(2, 9),
       ...data,
+      amount: finalAmount,
       date: data.date || new Date().toISOString(),
       carbonFootprint: carbonFootprint?.carbonFootprint
     };
@@ -117,7 +134,7 @@ export default function App() {
         })
         .reduce((sum, e) => sum + e.amount, 0);
         
-      const newTotal = categorySpent + data.amount;
+      const newTotal = categorySpent + finalAmount;
       const categoryName = categories.find(c => c.id === data.categoryId)?.name || data.categoryId;
 
       if (newTotal > categoryBudget.amount) {
@@ -586,6 +603,7 @@ export default function App() {
             { id: 'budgets', icon: Wallet, label: 'Budgets' },
             { id: 'stats', icon: ChartIcon, label: 'Analytics' },
             { id: 'regret', icon: AlertTriangle, label: 'Regret Insights' },
+            { id: 'subscriptions', icon: CreditCard, label: 'Subs' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -619,6 +637,7 @@ export default function App() {
                     <RegretNudge expense={unratedExpense} onRate={handleRateExpense} />
                   )}
                 </AnimatePresence>
+                <SubscriptionAlerts subscriptions={subscriptions} />
                 <Charts expenses={expenses.slice(0, 10)} categories={categories} />
                 <div>
                   <div className="mb-4 flex items-center justify-between">
@@ -697,6 +716,14 @@ export default function App() {
                 <RegretInsights expenses={expenses} categories={categories} />
                 <AISpendingSummary expenses={expenses} categories={categories} />
               </div>
+            )}
+            {activeTab === 'subscriptions' && (
+              <SubscriptionManager 
+                expenses={expenses} 
+                subscriptions={subscriptions} 
+                onAddSubscription={addSubscription} 
+                onRemoveSubscription={removeSubscription} 
+              />
             )}
           </motion.div>
         </AnimatePresence>
