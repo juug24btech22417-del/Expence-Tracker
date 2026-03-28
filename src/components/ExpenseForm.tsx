@@ -58,11 +58,15 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
     e.preventDefault();
     if (!amount || isNaN(Number(amount))) return;
     
+    const selectedDate = new Date(date);
+    const now = new Date();
+    selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+
     onAdd({
       amount: Number(amount),
       categoryId,
       description: description || categories.find(c => c.id === categoryId)?.name || 'Expense',
-      date: new Date(date).toISOString(),
+      date: selectedDate.toISOString(),
       originalAmount: originalAmount ? Number(originalAmount) : undefined,
       originalCurrency: originalCurrency !== 'INR' ? originalCurrency : undefined,
     });

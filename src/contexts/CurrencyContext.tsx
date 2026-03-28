@@ -44,7 +44,10 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const fetchRates = async () => {
       try {
-        const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${baseCurrency}`);
+        const response = await fetch(`https://api.frankfurter.app/latest?from=${baseCurrency}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         const newRates: Record<string, number> = {};
         for (const currency in data.rates) {
@@ -55,6 +58,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setExchangeRates(prev => ({ ...prev, ...newRates }));
       } catch (error) {
         console.error("Failed to fetch exchange rates:", error);
+        alert(`Failed to fetch exchange rates: ${error instanceof Error ? error.message : String(error)}`);
       }
     };
     fetchRates();

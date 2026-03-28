@@ -70,7 +70,7 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
             )}
           </div>
           <p className="text-[10px] uppercase tracking-widest text-white/40">
-            {category.name} • {format(new Date(expense.date), 'MMM d')}
+            {category.name} • {format(new Date(expense.date), 'MMM d, h:mm a')}
           </p>
         </div>
       </div>
