@@ -16,7 +16,7 @@ import { AIAssistant } from './components/AIAssistant';
 import { motion, AnimatePresence } from 'motion/react';
 import { parseExpenseWithAI, scanReceiptWithAI, parseAudioExpenseWithAI, parseSMSTransactionWithAI, estimateCarbonFootprintWithAI } from './services/geminiService';
 import { Waves } from './components/Waves';
-import { cn } from './utils';
+import { cn, triggerHaptic } from './utils';
 import { useTheme } from './contexts/ThemeContext';
 import { useCurrency } from './contexts/CurrencyContext';
 import { CURRENCIES } from './constants';
@@ -376,9 +376,14 @@ export default function App() {
       <main className="mx-auto max-w-2xl px-6 pt-12 pb-32">
         {/* Header */}
         <header className="mb-12 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-light tracking-tight">Glass Ledger</h1>
-            <p className="text-sm text-white/40">Manage your wealth with clarity.</p>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white">
+              <Wallet size={20} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-light tracking-tight">Glass Ledger</h1>
+              <p className="text-sm text-white/40">Manage your wealth with clarity.</p>
+            </div>
           </div>
           <div className="flex gap-2">
             <button
@@ -420,7 +425,10 @@ export default function App() {
               <Camera size={18} className={isScanning ? 'animate-pulse text-emerald-400' : ''} />
             </button>
             <button
-              onClick={() => setIsSettingsOpen(true)}
+              onClick={() => {
+                triggerHaptic();
+                setIsSettingsOpen(true);
+              }}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition-all hover:bg-white/10 hover:text-white"
               title="Settings"
             >

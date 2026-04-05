@@ -3,7 +3,7 @@ import { Plus, X, MessageSquare } from 'lucide-react';
 import { CategoryDefinition, CategoryId } from '../types';
 import { GlassCard } from './GlassCard';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../utils';
+import { cn, triggerHaptic } from '../utils';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { parseSMSTransactionWithAI } from '../services/geminiService';
 import { CURRENCIES } from '../constants';
@@ -58,15 +58,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
     e.preventDefault();
     if (!amount || isNaN(Number(amount))) return;
     
+    triggerHaptic();
+    
     const selectedDate = new Date(date);
     const now = new Date();
     selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
-
-    // If original currency is different from base, we need to store the original amount
-    // and let App.tsx handle the conversion, OR convert it here.
-    // Given the current structure, App.tsx handles the conversion if originalCurrency is provided.
-    // The issue is that the amount input is being treated as the final amount in base currency.
-    // If originalCurrency !== baseCurrency, the amount input should be treated as originalAmount.
 
     const isForeign = originalCurrency !== baseCurrency;
     

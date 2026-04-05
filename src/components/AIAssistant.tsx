@@ -5,6 +5,7 @@ import { GlassCard } from './GlassCard';
 import { chatWithAIAssistant } from '../services/geminiService';
 import { Expense, CategoryDefinition, CategoryId } from '../types';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { triggerHaptic } from '../utils';
 
 interface AIAssistantProps {
   expenses: Expense[];
@@ -97,6 +98,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ expenses, budgets, cat
       setMessages(prev => [...prev, { role: 'ai', content: response.message }]);
       
       if (response.action) {
+        triggerHaptic();
         const categoryId = categories.find(c => c.name.toLowerCase() === response.action!.category.toLowerCase())?.id || 'other';
         onAddExpense({
           amount: response.action.amount,
@@ -114,6 +116,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ expenses, budgets, cat
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    triggerHaptic();
     const userMessage = input.trim();
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
