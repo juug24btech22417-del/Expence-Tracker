@@ -10,7 +10,7 @@ interface AIAssistantProps {
   expenses: Expense[];
   budgets: any[];
   categories: CategoryDefinition[];
-  onAddExpense: (expense: { amount: number; categoryId: CategoryId; description: string }) => void;
+  onAddExpense: (expense: { amount: number; categoryId: CategoryId; description: string; originalAmount?: number; originalCurrency?: string; alreadyConverted?: boolean }) => void;
   travelMode: boolean;
   exchangeRates: Record<string, number>;
 }
@@ -101,7 +101,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ expenses, budgets, cat
         onAddExpense({
           amount: response.action.amount,
           categoryId,
-          description: response.action.description
+          description: response.action.description,
+          alreadyConverted: true
         });
       }
     } else {

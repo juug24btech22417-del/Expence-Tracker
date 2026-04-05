@@ -14,7 +14,7 @@ interface ExpenseFormProps {
 }
 
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) => {
-  const { currencySymbol } = useCurrency();
+  const { currencySymbol, baseCurrency } = useCurrency();
   const getLocalDateString = () => {
     const d = new Date();
     const offset = d.getTimezoneOffset();
@@ -25,7 +25,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
   const [isOpen, setIsOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [originalAmount, setOriginalAmount] = useState('');
-  const [originalCurrency, setOriginalCurrency] = useState('INR');
+  const [originalCurrency, setOriginalCurrency] = useState(baseCurrency);
   const [categoryId, setCategoryId] = useState<CategoryId>(categories[0]?.id || 'other');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(getLocalDateString());
@@ -62,18 +62,26 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
     const now = new Date();
     selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
 
+    // If original currency is different from base, we need to store the original amount
+    // and let App.tsx handle the conversion, OR convert it here.
+    // Given the current structure, App.tsx handles the conversion if originalCurrency is provided.
+    // The issue is that the amount input is being treated as the final amount in base currency.
+    // If originalCurrency !== baseCurrency, the amount input should be treated as originalAmount.
+
+    const isForeign = originalCurrency !== baseCurrency;
+    
     onAdd({
       amount: Number(amount),
       categoryId,
       description: description || categories.find(c => c.id === categoryId)?.name || 'Expense',
       date: selectedDate.toISOString(),
-      originalAmount: originalAmount ? Number(originalAmount) : undefined,
-      originalCurrency: originalCurrency !== 'INR' ? originalCurrency : undefined,
+      originalAmount: isForeign ? Number(amount) : undefined,
+      originalCurrency: isForeign ? originalCurrency : undefined,
     });
     
     setAmount('');
     setOriginalAmount('');
-    setOriginalCurrency('INR');
+    setOriginalCurrency(baseCurrency);
     setDescription('');
     setDate(new Date().toISOString().split('T')[0]);
     setSmsText('');

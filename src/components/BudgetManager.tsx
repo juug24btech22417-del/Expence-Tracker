@@ -1,22 +1,41 @@
 import React, { useState } from 'react';
-import { Budget, CategoryDefinition, CategoryId } from '../types';
+import { Budget, CategoryDefinition, CategoryId, Expense } from '../types';
 import { GlassCard } from './GlassCard';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { X, Plus, Save, Edit2 } from 'lucide-react';
+import { X, Plus, Save, Edit2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { suggestBudgetsWithAI } from '../services/geminiService';
 
 interface BudgetManagerProps {
+  expenses: Expense[];
   budgets: Budget[];
   categories: CategoryDefinition[];
   onUpdateBudgets: (budgets: Budget[]) => void;
   onUpdateCategories: (categories: CategoryDefinition[]) => void;
 }
 
-export const BudgetManager: React.FC<BudgetManagerProps> = ({ budgets, categories, onUpdateBudgets, onUpdateCategories }) => {
-  const { currencySymbol } = useCurrency();
+export const BudgetManager: React.FC<BudgetManagerProps> = ({ expenses, budgets, categories, onUpdateBudgets, onUpdateCategories }) => {
+  const { currencySymbol, baseCurrency } = useCurrency();
   const [isOpen, setIsOpen] = useState(false);
   const [tempBudgets, setTempBudgets] = useState<Budget[]>(budgets);
   const [tempCategories, setTempCategories] = useState<CategoryDefinition[]>(categories);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+
+  const handleSuggestBudgets = async () => {
+    setIsSuggesting(true);
+    const suggestion = await suggestBudgetsWithAI(expenses, categories, baseCurrency);
+    setIsSuggesting(false);
+    if (suggestion) {
+      const newBudgets = suggestion.suggestions.map(s => ({
+        categoryId: s.categoryId as CategoryId,
+        amount: s.suggestedAmount
+      }));
+      setTempBudgets(newBudgets);
+      alert("AI Budget Suggestions applied! Review them and click Save.");
+    } else {
+      alert("Failed to get AI budget suggestions.");
+    }
+  };
 
   const handleUpdateBudget = (categoryId: CategoryId, amount: number) => {
     setTempBudgets(prev => {
@@ -67,6 +86,14 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({ budgets, categorie
               <GlassCard className="bg-white/5 border-white/10 backdrop-blur-3xl">
                 <div className="mb-6 flex items-center justify-between">
                   <h2 className="text-xl font-medium text-white">Manage Budgets</h2>
+                  <button
+                    onClick={handleSuggestBudgets}
+                    disabled={isSuggesting}
+                    className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/60 transition-all hover:bg-white/10 hover:text-white disabled:opacity-50"
+                  >
+                    <Sparkles size={14} />
+                    {isSuggesting ? 'Suggesting...' : 'AI Suggest'}
+                  </button>
                   <button onClick={() => setIsOpen(false)} className="text-white/60 hover:text-white">
                     <X size={20} />
                   </button>

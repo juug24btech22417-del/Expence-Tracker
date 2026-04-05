@@ -46,6 +46,7 @@ const convertCurrencyIfNeeded = async (ai: GoogleGenAI, expense: any, baseCurren
   const rate = exchangeRates[expense.currency.toUpperCase()];
   if (rate) {
     console.log(`Using manual exchange rate for ${expense.currency}: ${rate}`);
+    // If rate is (Base / Foreign), then Foreign * rate = Base
     return {
       ...expense,
       amount: expense.amount * rate,
@@ -535,6 +536,57 @@ export const estimateCarbonFootprintWithAI = async (description: string, amount:
     return parseJSONResponse(response.text);
   } catch (error) {
     console.error("AI Carbon Footprint Error:", error);
+    return null;
+  }
+};
+
+export const suggestBudgetsWithAI = async (
+  expenses: any[],
+  categories: any[],
+  baseCurrency: string
+): Promise<{ suggestions: { categoryId: string; suggestedAmount: number; reason: string }[] } | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  try {
+    const expensesSummary = expenses.map(e => ({
+      amount: e.amount,
+      category: categories.find(c => c.id === e.categoryId)?.name || 'Other',
+      date: e.date
+    }));
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Analyze the following expenses and suggest monthly budget amounts for each category based on spending patterns. 
+      Expenses: ${JSON.stringify(expensesSummary)}.
+      Categories: ${categories.map(c => c.name).join(', ')}.
+      Base Currency: ${baseCurrency}.
+      Return a JSON object with a 'suggestions' array. Each suggestion should have 'categoryId', 'suggestedAmount' (number), and 'reason' (string).`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            suggestions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  categoryId: { type: Type.STRING },
+                  suggestedAmount: { type: Type.NUMBER },
+                  reason: { type: Type.STRING }
+                },
+                required: ["categoryId", "suggestedAmount", "reason"]
+              }
+            }
+          },
+          required: ["suggestions"]
+        }
+      }
+    });
+
+    return parseJSONResponse(response.text);
+  } catch (error) {
+    console.error("AI Budget Suggestion Error:", error);
     return null;
   }
 };

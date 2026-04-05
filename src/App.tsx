@@ -103,11 +103,18 @@ export default function App() {
     setSubscriptions(prev => prev.filter(s => s.id !== id));
   };
 
-  const addExpense = async (data: { amount: number; categoryId: CategoryId; description: string; date?: string; originalAmount?: number; originalCurrency?: string }) => {
+  const addExpense = async (data: { amount: number; categoryId: CategoryId; description: string; date?: string; originalAmount?: number; originalCurrency?: string; alreadyConverted?: boolean }) => {
     let finalAmount = data.amount;
-    if (data.originalCurrency && data.originalCurrency !== 'INR' && exchangeRates[data.originalCurrency]) {
-      finalAmount = data.amount * exchangeRates[data.originalCurrency];
+    console.log("Adding expense:", data, "Base Currency:", baseCurrency, "Rates:", exchangeRates);
+    
+    // If original currency is provided and different from base, convert it.
+    // The exchange rate is (Foreign / Base). To convert Foreign to Base, we need to divide by the rate.
+    if (data.originalCurrency && data.originalCurrency !== baseCurrency && exchangeRates[data.originalCurrency] && !data.alreadyConverted) {
+      const rate = exchangeRates[data.originalCurrency];
+      console.log("Converting", data.amount, data.originalCurrency, "to", baseCurrency, "using rate", rate);
+      finalAmount = data.amount / rate;
     }
+    console.log("Final amount:", finalAmount);
 
     let carbonFootprint = null;
     if (data.categoryId === 'transport') {
@@ -255,7 +262,8 @@ export default function App() {
               categoryId,
               description: result.description,
               originalAmount: result.originalAmount,
-              originalCurrency: result.originalCurrency
+              originalCurrency: result.originalCurrency,
+              alreadyConverted: true
             });
           } else {
             alert("Couldn't understand that. Try again!");
@@ -293,7 +301,8 @@ export default function App() {
             categoryId,
             description: result.description,
             originalAmount: result.originalAmount,
-            originalCurrency: result.originalCurrency
+            originalCurrency: result.originalCurrency,
+            alreadyConverted: true
           });
         } else {
           alert("Couldn't scan receipt. Try a clearer photo!");
@@ -680,6 +689,7 @@ export default function App() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-white/60">Monthly Budgets</h3>
                   <BudgetManager 
+                    expenses={expenses}
                     budgets={budgets} 
                     categories={categories} 
                     onUpdateBudgets={setBudgets} 

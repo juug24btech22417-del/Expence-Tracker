@@ -35,6 +35,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     localStorage.setItem('baseCurrency', baseCurrency);
+    localStorage.removeItem('exchangeRates');
   }, [baseCurrency]);
 
   useEffect(() => {
@@ -43,23 +44,35 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     const fetchRates = async () => {
-      try {
-        const response = await fetch(`https://api.frankfurter.app/latest?from=${baseCurrency}`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+      const apis = [
+        `https://open.er-api.com/v6/latest/${baseCurrency}`,
+        `https://api.exchangerate-api.com/v4/latest/${baseCurrency}`,
+        `https://api.frankfurter.app/latest?from=${baseCurrency}`
+      ];
+
+      for (const url of apis) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          const newRates: Record<string, number> = {};
+          
+          // Frankfurter returns rates as (currency / baseCurrency)
+          // Exchangerate-api returns rates as (currency / baseCurrency)
+          const rates = data.rates;
+          
+          for (const currency in rates) {
+            newRates[currency] = 1 / rates[currency];
+          }
+          setExchangeRates(newRates);
+          return; // Success
+        } catch (error) {
+          console.error(`Failed to fetch exchange rates from ${url}:`, error);
         }
-        const data = await response.json();
-        const newRates: Record<string, number> = {};
-        for (const currency in data.rates) {
-          // The API returns rates as (currency / baseCurrency).
-          // We need (baseCurrency / currency) to convert from foreign currency to base currency.
-          newRates[currency] = 1 / data.rates[currency];
-        }
-        setExchangeRates(prev => ({ ...prev, ...newRates }));
-      } catch (error) {
-        console.error("Failed to fetch exchange rates:", error);
-        alert(`Failed to fetch exchange rates: ${error instanceof Error ? error.message : String(error)}`);
       }
+      console.error("All exchange rate APIs failed.");
     };
     fetchRates();
     
