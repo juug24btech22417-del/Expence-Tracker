@@ -15,14 +15,13 @@ export const RegretInsights: React.FC<RegretInsightsProps> = ({ expenses, catego
 
   const metrics = useMemo(() => {
     const now = new Date();
-    const startOfCurrentMonth = startOfMonth(now);
+    const thirtyDaysAgo = subDays(now, 30);
 
-    const regretExpenses = expenses.filter(e => e.rating === 'no');
-    const worthItExpenses = expenses.filter(e => e.rating === 'yes');
-    const currentMonthRegrets = regretExpenses.filter(e => isAfter(new Date(e.date), startOfCurrentMonth));
+    const regretExpenses = expenses.filter(e => e.regretStatus === 'no');
+    const worthItExpenses = expenses.filter(e => e.regretStatus === 'yes');
 
-    const totalRegretSpending = currentMonthRegrets.reduce((sum, e) => sum + e.amount, 0);
-    const ratedExpenses = expenses.filter(e => e.rating);
+    const totalRegretSpending = regretExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const ratedExpenses = expenses.filter(e => e.regretStatus);
     const percentageRegret = ratedExpenses.length > 0 ? (regretExpenses.length / ratedExpenses.length) * 100 : 0;
 
     // Time of day (Regret)
@@ -145,7 +144,7 @@ export const RegretInsights: React.FC<RegretInsightsProps> = ({ expenses, catego
     };
   }, [expenses, categories]);
 
-  if (expenses.filter(e => e.rating).length === 0) {
+  if (expenses.filter(e => e.regretStatus).length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-white/40 mb-2">No rated purchases yet.</p>
@@ -158,7 +157,7 @@ export const RegretInsights: React.FC<RegretInsightsProps> = ({ expenses, catego
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
         <GlassCard className="p-4 border-orange-500/20 bg-orange-500/5">
-          <p className="text-[10px] uppercase tracking-widest text-orange-400/60 mb-1">Regret Spending</p>
+          <p className="text-[10px] uppercase tracking-widest text-orange-400/60 mb-1">Total Regret Spending</p>
           <p className="text-2xl font-light text-orange-400">{currencySymbol}{metrics.totalRegretSpending.toFixed(2)}</p>
         </GlassCard>
         <GlassCard className="p-4 border-white/10">
