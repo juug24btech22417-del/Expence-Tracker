@@ -58,11 +58,12 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
             )}
             {expense.carbonFootprint !== undefined && category.id === 'transport' && (
               <div className="flex flex-col gap-1 mt-1 sm:mt-0 sm:flex-row sm:items-center">
-                <span className="rounded-full bg-sky-500/20 border border-sky-500/50 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-sky-400 whitespace-nowrap">
+                <span className="rounded-full bg-sky-500/20 border border-sky-500/50 px-2 py-0.5 text-[8px] font-bold tracking-wider text-sky-400 whitespace-nowrap" title="Carbon Dioxide Equivalent (CO2e)">
                   {expense.carbonFootprint.toFixed(1)} kg CO2e
+                  <span className="ml-1 opacity-75 hidden sm:inline">({(expense.carbonFootprint / 21).toFixed(1)} trees/yr)</span>
                 </span>
                 {expense.amount > 0 && (
-                  <span className="text-[7px] text-sky-400/60 font-medium uppercase tracking-tighter sm:ml-1">
+                  <span className="text-[7px] text-sky-400/60 font-medium tracking-tighter sm:ml-1">
                     ({(expense.carbonFootprint / expense.amount).toFixed(2)} kg/{currencySymbol})
                   </span>
                 )}
