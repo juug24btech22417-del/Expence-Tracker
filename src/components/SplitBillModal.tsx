@@ -1,9 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Users, Sparkles, Mic, Camera, Square } from 'lucide-react';
+import { X, Users, Sparkles, Mic, Camera, Square, Plus, Trash2 } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { splitBillWithAI, splitBillAudioWithAI, splitBillReceiptWithAI } from '../services/geminiService';
 import { useCurrency } from '../contexts/CurrencyContext';
+
+interface SavedGroup {
+  id: string;
+  name: string;
+  members: string;
+}
 
 interface SplitBillModalProps {
   isOpen: boolean;
@@ -16,6 +22,44 @@ export const SplitBillModal: React.FC<SplitBillModalProps> = ({ isOpen, setIsOpe
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [result, setResult] = useState<{ total: number; splits: { person: string; amount: number; items: string[] }[] } | null>(null);
+
+  const [savedGroups, setSavedGroups] = useState<SavedGroup[]>(() => {
+    const saved = localStorage.getItem('savedSplitGroups');
+    return saved ? JSON.parse(saved) : [
+      { id: '1', name: 'Roommates', members: 'Alice, Bob, Me (split equally)' }
+    ];
+  });
+  const [isAddingGroup, setIsAddingGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupMembers, setNewGroupMembers] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem('savedSplitGroups', JSON.stringify(savedGroups));
+  }, [savedGroups]);
+
+  const handleSaveGroup = () => {
+    if (!newGroupName.trim() || !newGroupMembers.trim()) return;
+    setSavedGroups(prev => [...prev, {
+      id: Date.now().toString(),
+      name: newGroupName.trim(),
+      members: newGroupMembers.trim()
+    }]);
+    setNewGroupName('');
+    setNewGroupMembers('');
+    setIsAddingGroup(false);
+  };
+  
+  const handleDeleteGroup = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSavedGroups(prev => prev.filter(g => g.id !== id));
+  };
+
+  const handleApplyGroup = (group: SavedGroup) => {
+    const prefix = `Split between: ${group.members}.\n`;
+    if (!input.includes(prefix)) {
+      setInput(prev => prefix + prev);
+    }
+  };
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -154,6 +198,60 @@ export const SplitBillModal: React.FC<SplitBillModalProps> = ({ isOpen, setIsOpe
                         </button>
                       </div>
                     </div>
+
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] uppercase tracking-widest text-white/40">Saved Groups</span>
+                        <button 
+                          onClick={() => setIsAddingGroup(!isAddingGroup)}
+                          className="text-[10px] uppercase font-medium text-indigo-300 hover:text-indigo-200"
+                        >
+                          {isAddingGroup ? 'Cancel' : '+ Add Group'}
+                        </button>
+                      </div>
+                      
+                      {isAddingGroup && (
+                        <div className="mb-3 p-3 bg-white/5 rounded-xl border border-white/10 space-y-2">
+                          <input 
+                            value={newGroupName}
+                            onChange={e => setNewGroupName(e.target.value)}
+                            placeholder="Group Name (e.g. Roommates)"
+                            className="w-full bg-transparent border-b border-white/10 p-1 text-sm text-white focus:border-white/30 outline-none"
+                          />
+                          <input 
+                            value={newGroupMembers}
+                            onChange={e => setNewGroupMembers(e.target.value)}
+                            placeholder="Rules (e.g. Alice 40%, Bob 60%)"
+                            className="w-full bg-transparent border-b border-white/10 p-1 text-sm text-white focus:border-white/30 outline-none"
+                          />
+                          <button 
+                            onClick={handleSaveGroup}
+                            className="w-full py-1.5 mt-2 bg-indigo-500/20 text-indigo-300 text-xs font-medium rounded-lg hover:bg-indigo-500/30 transition"
+                          >
+                            Save Group
+                          </button>
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                        {savedGroups.map(group => (
+                          <button
+                            key={group.id}
+                            onClick={() => handleApplyGroup(group)}
+                            className="group relative flex items-center justify-between gap-3 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors flex-shrink-0"
+                          >
+                            <span className="text-xs text-white/80">{group.name}</span>
+                            <div 
+                              onClick={(e) => handleDeleteGroup(group.id, e)}
+                              className="opacity-0 group-hover:opacity-100 p-0.5 rounded-full hover:bg-red-500/20 text-red-400 transition"
+                            >
+                              <Trash2 size={12} />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <textarea
                       value={input}
                       onChange={(e) => setInput(e.target.value)}

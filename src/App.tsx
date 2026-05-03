@@ -23,6 +23,7 @@ import { CURRENCIES } from './constants';
 import { RegretInsights } from './components/RegretInsights';
 import { AISpendingSummary } from './components/AISpendingSummary';
 import { RegretNudge } from './components/RegretNudge';
+import { CashflowSankey } from './components/CashflowSankey';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -45,7 +46,7 @@ export default function App() {
       { categoryId: 'shopping', amount: 3000 },
     ];
   });
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'stats' | 'budgets' | 'regret'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'stats' | 'cashflow' | 'budgets' | 'regret' | 'subscriptions'>('dashboard');
   const [isScanning, setIsScanning] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
@@ -619,6 +620,7 @@ export default function App() {
             { id: 'history', icon: List, label: 'History' },
             { id: 'budgets', icon: Wallet, label: 'Budgets' },
             { id: 'stats', icon: ChartIcon, label: 'Analytics' },
+            { id: 'cashflow', icon: Sparkles, label: 'Cashflow' },
             { id: 'regret', icon: AlertTriangle, label: 'Regret Insights' },
             { id: 'subscriptions', icon: CreditCard, label: 'Subs' },
           ].map((tab) => (
@@ -715,6 +717,23 @@ export default function App() {
                 <WhatIfSimulator expenses={expenses} categories={categories} />
                 <AISpendingSummary expenses={expenses} categories={categories} />
               </div>
+            )}
+
+            {activeTab === 'cashflow' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center gap-3">
+                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white">
+                     <Sparkles size={18} />
+                   </div>
+                   <h2 className="text-2xl font-light">Cashflow Visualization</h2>
+                </div>
+                <CashflowSankey expenses={expenses} categories={categories} />
+              </motion.div>
             )}
 
             {activeTab === 'regret' && (
