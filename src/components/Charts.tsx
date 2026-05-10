@@ -35,8 +35,20 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
               ))}
             </Pie>
             <Tooltip
-              contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
-              formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, 'Amount']}
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const data = payload[0];
+                  return (
+                    <div className="rounded-lg border border-white/10 bg-black/90 backdrop-blur-md p-3 text-white shadow-xl min-w-[120px] z-50">
+                      <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">{data.name}</p>
+                      <p className="text-lg font-light text-white">
+                        {currencySymbol}{Number(data.value).toFixed(2)}
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
             />
             <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
           </PieChart>
@@ -51,8 +63,19 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
             <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
             <Tooltip
               cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-              contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
-              formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, 'Amount']}
+              content={({ active, payload, label }) => {
+                if (active && payload && payload.length) {
+                  return (
+                    <div className="rounded-lg border border-white/10 bg-black/90 backdrop-blur-md p-3 text-white shadow-xl min-w-[120px] z-50">
+                      <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">{label}</p>
+                      <p className="text-lg font-light text-white">
+                        {currencySymbol}{Number(payload[0].value).toFixed(2)}
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
             />
             <Bar dataKey="amount" fill="#fff" radius={[4, 4, 0, 0]} barSize={20} />
           </ComposedChart>

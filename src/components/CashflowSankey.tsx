@@ -11,6 +11,14 @@ interface CashflowSankeyProps {
 
 export const CashflowSankey: React.FC<CashflowSankeyProps> = ({ expenses, categories }) => {
   const { currencySymbol } = useCurrency();
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const data = useMemo(() => {
     if (expenses.length === 0) return { nodes: [], links: [] };
@@ -97,28 +105,29 @@ export const CashflowSankey: React.FC<CashflowSankeyProps> = ({ expenses, catego
       <h3 className="mb-2 text-xl font-light text-white">Cashflow Analysis</h3>
       <p className="text-sm text-white/50 mb-6">Trace where your money goes, from total spending down to individual expenses.</p>
       
-      <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <Sankey
-            data={data}
-            nodePadding={40}
-            nodeWidth={24}
+      <div className="flex-1 min-h-0 w-full overflow-x-auto overflow-y-hidden scrollbar-hide">
+        <div style={{ width: isMobile ? '150%' : '100%', height: '100%', minWidth: isMobile ? '500px' : 'auto' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <Sankey
+              data={data}
+            nodePadding={isMobile ? 20 : 40}
+            nodeWidth={isMobile ? 16 : 24}
             linkCurvature={0.4}
-            margin={{ left: 20, right: 120, top: 20, bottom: 20 }}
+            margin={{ left: 10, right: isMobile ? 80 : 120, top: 20, bottom: 20 }}
             link={{ stroke: '#ffffff', strokeOpacity: 0.15 }}
             node={({ x, y, width, height, index, payload }) => {
-              const isLeftSide = x < 50;
-              // Expand the interaction area so tiny pills are easy to hover
-              const hitHeight = Math.max(height, 28);
-              const hitY = height < 28 ? y - (28 - height) / 2 : y;
+              const isLeftSide = x < (isMobile ? 30 : 50);
+              // Expand the interaction area so tiny pills are easy to hover or tap
+              const hitHeight = Math.max(height, 32);
+              const hitY = height < 32 ? y - (32 - height) / 2 : y;
               
               return (
                 <g style={{ cursor: 'pointer' }}>
                   {/* Invisible hit area */}
                   <rect
-                    x={x - 10}
+                    x={x - 15}
                     y={hitY}
-                    width={width + 20}
+                    width={width + 30}
                     height={hitHeight}
                     fill="transparent"
                   />
@@ -133,18 +142,20 @@ export const CashflowSankey: React.FC<CashflowSankeyProps> = ({ expenses, catego
                     rx={2}
                     style={{ pointerEvents: 'none' }}
                   />
-                  {height >= 8 && (
+                  {height >= (isMobile ? 12 : 8) && (
                     <text
-                      x={isLeftSide ? x + width + 8 : x + width + 8}
+                      x={isLeftSide ? x + width + (isMobile ? 4 : 8) : x + width + (isMobile ? 4 : 8)}
                       y={y + height / 2}
                       textAnchor="start"
                       alignmentBaseline="middle"
                       fill="#ffffff"
-                      fontSize={11}
+                      fontSize={isMobile ? 9 : 11}
                       className="opacity-70 font-medium"
                       style={{ pointerEvents: 'none' }}
                     >
-                      {payload.name}
+                      {payload.name && payload.name.length > (isMobile ? 12 : 20) 
+                        ? `${payload.name.substring(0, isMobile ? 12 : 20)}...` 
+                        : payload.name}
                     </text>
                   )}
                 </g>
@@ -192,6 +203,7 @@ export const CashflowSankey: React.FC<CashflowSankeyProps> = ({ expenses, catego
             />
           </Sankey>
         </ResponsiveContainer>
+        </div>
       </div>
     </GlassCard>
   );

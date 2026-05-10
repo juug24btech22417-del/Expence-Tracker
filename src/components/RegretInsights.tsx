@@ -183,9 +183,19 @@ export const RegretInsights: React.FC<RegretInsightsProps> = ({ expenses, catego
                 <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} tickMargin={10} minTickGap={30} />
                 <YAxis stroke="rgba(255,255,255,0.2)" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} tickFormatter={(value) => `${currencySymbol}${value}`} />
                 <RechartsTooltip
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                  itemStyle={{ color: '#fff' }}
-                  formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, 'Regret Spending']}
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="rounded-lg border border-white/10 bg-black/90 backdrop-blur-md p-3 text-white shadow-xl min-w-[120px] z-50">
+                          <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">{label}</p>
+                          <p className="text-lg font-light text-orange-400">
+                            {currencySymbol}{Number(payload[0].value).toFixed(2)}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
                 <Line type="monotone" dataKey="amount" stroke="#f97316" strokeWidth={2} dot={false} activeDot={{ r: 6, fill: '#f97316' }} />
               </LineChart>
@@ -213,9 +223,20 @@ export const RegretInsights: React.FC<RegretInsightsProps> = ({ expenses, catego
                   ))}
                 </Pie>
                 <RechartsTooltip
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                  itemStyle={{ color: '#fff' }}
-                  formatter={(value: number) => `${currencySymbol}${value.toFixed(2)}`}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0];
+                      return (
+                        <div className="rounded-lg border border-white/10 bg-black/90 backdrop-blur-md p-3 text-white shadow-xl min-w-[120px] z-50">
+                          <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">{data.name}</p>
+                          <p className="text-lg font-light text-white">
+                            {currencySymbol}{Number(data.value).toFixed(2)}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -231,8 +252,19 @@ export const RegretInsights: React.FC<RegretInsightsProps> = ({ expenses, catego
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10, textTransform: 'capitalize' }} />
                 <RechartsTooltip
                   cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                  itemStyle={{ color: '#fff', textTransform: 'capitalize' }}
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="rounded-lg border border-white/10 bg-black/90 backdrop-blur-md p-3 text-white shadow-xl min-w-[120px] z-50">
+                          <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1 capitalize">{label}</p>
+                          <p className="text-lg font-light text-white">
+                            {payload[0].value} expenses
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
                 <Bar dataKey="value" fill="#f97316" radius={[0, 4, 4, 0]}>
                   {metrics.timeData.map((entry, index) => (
@@ -264,9 +296,20 @@ export const RegretInsights: React.FC<RegretInsightsProps> = ({ expenses, catego
                   ))}
                 </Pie>
                 <RechartsTooltip
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                  itemStyle={{ color: '#fff' }}
-                  formatter={(value: number) => `${currencySymbol}${value.toFixed(2)}`}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0];
+                      return (
+                        <div className="rounded-lg border border-white/10 bg-black/90 backdrop-blur-md p-3 text-white shadow-xl min-w-[120px] z-50">
+                          <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">{data.name}</p>
+                          <p className="text-lg font-light text-white">
+                            {currencySymbol}{Number(data.value).toFixed(2)}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -281,8 +324,19 @@ export const RegretInsights: React.FC<RegretInsightsProps> = ({ expenses, catego
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10, textTransform: 'capitalize' }} />
                 <RechartsTooltip
                   cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                  itemStyle={{ color: '#fff', textTransform: 'capitalize' }}
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="rounded-lg border border-white/10 bg-black/90 backdrop-blur-md p-3 text-white shadow-xl min-w-[120px] z-50">
+                          <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1 capitalize">{label}</p>
+                          <p className="text-lg font-light text-white">
+                            {payload[0].value} expenses
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
                 <Bar dataKey="value" fill="#10b981" radius={[0, 4, 4, 0]}>
                   {metrics.worthItTimeData.map((entry, index) => (
