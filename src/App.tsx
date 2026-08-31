@@ -26,6 +26,7 @@ import { RegretInsights } from './components/RegretInsights';
 import { AISpendingSummary } from './components/AISpendingSummary';
 import { RegretNudge } from './components/RegretNudge';
 import { CashflowSankey } from './components/CashflowSankey';
+import { TopCategoriesSummary } from './components/TopCategoriesSummary';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -774,6 +775,7 @@ export default function App() {
                     <RegretNudge expense={unratedExpense} onRate={handleRateExpense} />
                   )}
                 </AnimatePresence>
+                <TopCategoriesSummary expenses={filteredExpenses} categories={categories} />
                 <SubscriptionAlerts subscriptions={subscriptions} />
                 <Charts expenses={filteredExpenses.slice(0, 10)} categories={categories} />
                 <div>
