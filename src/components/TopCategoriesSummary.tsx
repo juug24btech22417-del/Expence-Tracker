@@ -3,8 +3,8 @@ import { Expense, CategoryDefinition, CategoryId } from '../types';
 import { GlassCard } from './GlassCard';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { motion } from 'motion/react';
-import { TrendingUp, Sparkles, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import { TrendingUp, Sparkles, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { format, subMonths } from 'date-fns';
 
 interface TopCategoriesSummaryProps {
   expenses: Expense[];
@@ -18,6 +18,11 @@ export const TopCategoriesSummary: React.FC<TopCategoriesSummaryProps> = ({ expe
   const currentYear = now.getFullYear();
   const monthName = format(now, 'MMMM yyyy');
 
+  const prevDate = subMonths(now, 1);
+  const prevMonth = prevDate.getMonth();
+  const prevYear = prevDate.getFullYear();
+  const prevMonthName = format(prevDate, 'MMM');
+
   // Filter current month expenses
   const monthlyExpenses = React.useMemo(() => {
     return expenses.filter(e => {
@@ -26,11 +31,28 @@ export const TopCategoriesSummary: React.FC<TopCategoriesSummaryProps> = ({ expe
     });
   }, [expenses, currentMonth, currentYear]);
 
+  // Filter previous month expenses
+  const prevMonthlyExpenses = React.useMemo(() => {
+    return expenses.filter(e => {
+      const d = new Date(e.date);
+      return d.getMonth() === prevMonth && d.getFullYear() === prevYear;
+    });
+  }, [expenses, prevMonth, prevYear]);
+
   const totalMonthlySpent = React.useMemo(() => {
     return monthlyExpenses.reduce((sum, e) => sum + e.amount, 0);
   }, [monthlyExpenses]);
 
-  // Calculate spending per category
+  // Calculate spending per category for previous month
+  const prevCategoryTotals = React.useMemo(() => {
+    const totals: Record<CategoryId, number> = {};
+    prevMonthlyExpenses.forEach(e => {
+      totals[e.categoryId] = (totals[e.categoryId] || 0) + e.amount;
+    });
+    return totals;
+  }, [prevMonthlyExpenses]);
+
+  // Calculate spending per category for current month
   const topCategories = React.useMemo(() => {
     const categoryTotals: Record<CategoryId, { total: number; count: number }> = {};
 
@@ -49,11 +71,33 @@ export const TopCategoriesSummary: React.FC<TopCategoriesSummaryProps> = ({ expe
         color: '#A3B1C6'
       };
       const percentage = totalMonthlySpent > 0 ? (data.total / totalMonthlySpent) * 100 : 0;
+      const prevTotal = prevCategoryTotals[catId] || 0;
+      const diff = data.total - prevTotal;
+      let percentChange = 0;
+      let trend: 'up' | 'down' | 'neutral' | 'new' = 'neutral';
+
+      if (prevTotal === 0 && data.total > 0) {
+        trend = 'new';
+      } else if (prevTotal > 0) {
+        percentChange = ((data.total - prevTotal) / prevTotal) * 100;
+        if (Math.abs(percentChange) < 0.5) {
+          trend = 'neutral';
+        } else if (percentChange > 0) {
+          trend = 'up';
+        } else {
+          trend = 'down';
+        }
+      }
+
       return {
         category,
         total: data.total,
         count: data.count,
-        percentage
+        percentage,
+        prevTotal,
+        diff,
+        percentChange,
+        trend
       };
     });
 
@@ -61,7 +105,7 @@ export const TopCategoriesSummary: React.FC<TopCategoriesSummaryProps> = ({ expe
     list.sort((a, b) => b.total - a.total);
 
     return list.slice(0, 3);
-  }, [monthlyExpenses, categories, totalMonthlySpent]);
+  }, [monthlyExpenses, categories, totalMonthlySpent, prevCategoryTotals]);
 
   return (
     <GlassCard className="p-5" hover>
@@ -107,9 +151,9 @@ export const TopCategoriesSummary: React.FC<TopCategoriesSummaryProps> = ({ expe
             return (
               <div key={item.category.id} className="group">
                 <div className="flex items-center justify-between text-xs mb-1.5">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                     <span
-                      className={`flex h-5 w-5 items-center justify-center rounded-md border text-[10px] font-bold ${rankColors[index] || 'text-white/60 border-white/20 bg-white/5'}`}
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[10px] font-bold ${rankColors[index] || 'text-white/60 border-white/20 bg-white/5'}`}
                     >
                       #{index + 1}
                     </span>
@@ -117,21 +161,53 @@ export const TopCategoriesSummary: React.FC<TopCategoriesSummaryProps> = ({ expe
                       className="h-2.5 w-2.5 rounded-full shrink-0 shadow-sm"
                       style={{ backgroundColor: item.category.color }}
                     />
-                    <span className="font-medium text-white/90">
+                    <span className="font-medium text-white/90 truncate">
                       {item.category.name}
                     </span>
-                    <span className="text-[10px] text-white/40">
+                    <span className="text-[10px] text-white/40 shrink-0 hidden xs:inline">
                       ({item.count} {item.count === 1 ? 'txn' : 'txns'})
                     </span>
                   </div>
 
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-light text-white text-sm">
-                      {currencySymbol}{item.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                    <span className="text-[10px] font-medium text-white/40">
-                      {item.percentage.toFixed(0)}%
-                    </span>
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    {/* Previous Month Trend Arrow & Percentage Badge */}
+                    <div
+                      className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${
+                        item.trend === 'up'
+                          ? 'text-rose-300 border-rose-500/20 bg-rose-500/10'
+                          : item.trend === 'down'
+                          ? 'text-emerald-300 border-emerald-500/20 bg-emerald-500/10'
+                          : item.trend === 'new'
+                          ? 'text-indigo-300 border-indigo-500/20 bg-indigo-500/10'
+                          : 'text-white/50 border-white/10 bg-white/5'
+                      }`}
+                      title={
+                        item.trend === 'new'
+                          ? `New expense category this month (none in ${prevMonthName})`
+                          : `${item.percentChange >= 0 ? '+' : ''}${item.percentChange.toFixed(1)}% compared to ${prevMonthName} (${currencySymbol}${item.prevTotal.toFixed(2)})`
+                      }
+                    >
+                      {item.trend === 'up' && <ArrowUpRight size={11} className="shrink-0 stroke-[2.5]" />}
+                      {item.trend === 'down' && <ArrowDownRight size={11} className="shrink-0 stroke-[2.5]" />}
+                      {item.trend === 'neutral' && <Minus size={11} className="shrink-0 stroke-[2.5]" />}
+                      
+                      <span>
+                        {item.trend === 'new'
+                          ? 'New'
+                          : item.trend === 'neutral'
+                          ? '0%'
+                          : `${Math.abs(item.percentChange).toFixed(0)}%`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="font-light text-white text-sm">
+                        {currencySymbol}{item.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-[10px] font-medium text-white/40">
+                        {item.percentage.toFixed(0)}%
+                      </span>
+                    </div>
                   </div>
                 </div>
 
