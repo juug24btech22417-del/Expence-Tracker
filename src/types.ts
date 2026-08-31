@@ -8,12 +8,23 @@ export interface CategoryDefinition {
   color: string;
 }
 
+export interface Session {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  description?: string;
+  isDefault?: boolean;
+  createdAt: string;
+}
+
 export interface Expense {
   id: string;
   amount: number;
   categoryId: CategoryId;
   description: string;
   date: string; // ISO string
+  sessionId?: string; // id of the session it belongs to
   originalAmount?: number;
   originalCurrency?: string;
   regretStatus?: RegretStatus;
@@ -35,6 +46,34 @@ export interface Subscription {
   nextRenewalDate: string;
   status: 'active' | 'cancelled';
 }
+
+export const DEFAULT_SESSIONS: Session[] = [
+  {
+    id: 'college',
+    name: 'College',
+    icon: 'graduation-cap',
+    color: '#818CF8',
+    description: 'Hostel, canteen, books, tuition & campus expenses',
+    createdAt: new Date().toISOString(),
+    isDefault: true,
+  },
+  {
+    id: 'home',
+    name: 'Home',
+    icon: 'home',
+    color: '#34D399',
+    description: 'Groceries, utilities, family expenses & home stay',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'personal',
+    name: 'Personal',
+    icon: 'sparkles',
+    color: '#F472B6',
+    description: 'Leisure, subscriptions, hobbies & shopping',
+    createdAt: new Date().toISOString(),
+  },
+];
 
 export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
   { id: 'food', name: 'Food', color: '#A3B1C6' },

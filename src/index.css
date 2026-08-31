@@ -9,6 +9,43 @@
 
 body {
   @apply font-sans antialiased bg-white text-gray-900 dark:bg-gray-950 dark:text-white transition-colors duration-300;
+  overflow-x: hidden;
+}
+
+/* Global scrollbar hiding for horizontal and touch scroll containers */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+  width: 0px;
+  height: 0px;
+}
+
+/* Hide horizontal scrollbar universally on elements with scrollbar-none or no-scrollbar */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+  width: 0px;
+  height: 0px;
+}
+
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Ensure all horizontal scrolling areas have smooth momentum scrolling without ugly scrollbars */
+* {
+  scrollbar-color: transparent transparent;
+}
+
+::-webkit-scrollbar:horizontal {
+  height: 0px !important;
+  display: none !important;
 }
 
 ::view-transition-group(*),

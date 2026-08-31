@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, Camera, LayoutDashboard, List, PieChart as ChartIcon, Sparkles, Wallet, Plane, Users, Square, Settings, AlertTriangle, CreditCard } from 'lucide-react';
-import { Expense, CategoryId, Budget, CategoryDefinition, DEFAULT_CATEGORIES, RegretStatus, Subscription } from './types';
+import { Mic, Camera, LayoutDashboard, List, PieChart as ChartIcon, Sparkles, Wallet, Plane, Users, Square, Settings, AlertTriangle, CreditCard, Layers } from 'lucide-react';
+import { Expense, CategoryId, Budget, CategoryDefinition, DEFAULT_CATEGORIES, RegretStatus, Subscription, Session, DEFAULT_SESSIONS } from './types';
 import { GlassCard } from './components/GlassCard';
 import { ExpenseForm } from './components/ExpenseForm';
 import { ExpenseList } from './components/ExpenseList';
@@ -13,6 +13,8 @@ import { SplashScreen } from './components/SplashScreen';
 import { SubscriptionManager } from './components/SubscriptionManager';
 import { SubscriptionAlerts } from './components/SubscriptionAlerts';
 import { AIAssistant } from './components/AIAssistant';
+import { SessionBar } from './components/SessionBar';
+import { SessionManagerModal } from './components/SessionManagerModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { parseExpenseWithAI, scanReceiptWithAI, parseAudioExpenseWithAI, parseSMSTransactionWithAI, estimateCarbonFootprintWithAI } from './services/geminiService';
 import { Waves } from './components/Waves';
@@ -30,6 +32,25 @@ import 'jspdf-autotable';
 export default function App() {
   const { theme, toggleTheme } = useTheme();
   const { baseCurrency, setBaseCurrency, currencySymbol, exchangeRates, setExchangeRate, travelMode, setTravelMode } = useCurrency();
+  
+  // Sessions & Spaces State
+  const [sessions, setSessions] = useState<Session[]>(() => {
+    const saved = localStorage.getItem('sessions');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return DEFAULT_SESSIONS;
+  });
+
+  const [activeSessionId, setActiveSessionId] = useState<string>(() => {
+    return localStorage.getItem('activeSessionId') || 'college';
+  });
+
+  const [isSessionManagerOpen, setIsSessionManagerOpen] = useState(false);
+
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('expenses');
     return saved ? JSON.parse(saved) : [];
@@ -61,6 +82,14 @@ export default function App() {
   const recordingStartTimeRef = React.useRef<number>(0);
 
   useEffect(() => {
+    localStorage.setItem('sessions', JSON.stringify(sessions));
+  }, [sessions]);
+
+  useEffect(() => {
+    localStorage.setItem('activeSessionId', activeSessionId);
+  }, [activeSessionId]);
+
+  useEffect(() => {
     localStorage.setItem('expenses', JSON.stringify(expenses));
   }, [expenses]);
 
@@ -71,6 +100,51 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('budgets', JSON.stringify(budgets));
   }, [budgets]);
+
+  const defaultSessionId = sessions[0]?.id || 'college';
+
+  // Filtered expenses based on active session
+  const filteredExpenses = React.useMemo(() => {
+    if (activeSessionId === 'all') return expenses;
+    return expenses.filter(e => (e.sessionId || defaultSessionId) === activeSessionId);
+  }, [expenses, activeSessionId, defaultSessionId]);
+
+  const totalSpent = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+  // Session Handlers
+  const handleAddSession = (newSessionData: Omit<Session, 'id' | 'createdAt'>) => {
+    const newSession: Session = {
+      ...newSessionData,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString(),
+    };
+    setSessions(prev => [...prev, newSession]);
+    setActiveSessionId(newSession.id);
+  };
+
+  const handleUpdateSession = (id: string, updates: Partial<Session>) => {
+    setSessions(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+
+  const handleDeleteSession = (id: string, migrateToSessionId?: string) => {
+    if (sessions.length <= 1) return;
+
+    if (migrateToSessionId && migrateToSessionId !== 'delete') {
+      setExpenses(prev => prev.map(e => (e.sessionId || defaultSessionId) === id ? { ...e, sessionId: migrateToSessionId } : e));
+    } else if (migrateToSessionId === 'delete') {
+      setExpenses(prev => prev.filter(e => (e.sessionId || defaultSessionId) !== id));
+    } else {
+      const remaining = sessions.filter(s => s.id !== id);
+      const fallbackId = remaining[0]?.id || 'college';
+      setExpenses(prev => prev.map(e => (e.sessionId || defaultSessionId) === id ? { ...e, sessionId: fallbackId } : e));
+    }
+
+    const remainingSessions = sessions.filter(s => s.id !== id);
+    setSessions(remainingSessions);
+    if (activeSessionId === id) {
+      setActiveSessionId(remainingSessions[0]?.id || 'all');
+    }
+  };
 
   // Migrate old bright colors to new muted colors
   useEffect(() => {
@@ -104,26 +178,26 @@ export default function App() {
     setSubscriptions(prev => prev.filter(s => s.id !== id));
   };
 
-  const addExpense = async (data: { amount: number; categoryId: CategoryId; description: string; date?: string; originalAmount?: number; originalCurrency?: string; alreadyConverted?: boolean }) => {
+  const addExpense = async (data: { amount: number; categoryId: CategoryId; description: string; date?: string; sessionId?: string; originalAmount?: number; originalCurrency?: string; alreadyConverted?: boolean }) => {
     let finalAmount = data.amount;
-    console.log("Adding expense:", data, "Base Currency:", baseCurrency, "Rates:", exchangeRates);
     
     // If original currency is provided and different from base, convert it.
-    // The exchange rate is (Foreign / Base). To convert Foreign to Base, we need to divide by the rate.
     if (data.originalCurrency && data.originalCurrency !== baseCurrency && exchangeRates[data.originalCurrency] && !data.alreadyConverted) {
       const rate = exchangeRates[data.originalCurrency];
-      console.log("Converting", data.amount, data.originalCurrency, "to", baseCurrency, "using rate", rate);
       finalAmount = data.amount / rate;
     }
-    console.log("Final amount:", finalAmount);
 
     let carbonFootprint = null;
     if (data.categoryId === 'transport') {
       carbonFootprint = await estimateCarbonFootprintWithAI(data.description, finalAmount);
     }
+
+    const targetSessionId = data.sessionId || (activeSessionId === 'all' ? (sessions[0]?.id || 'college') : activeSessionId);
+
     const newExpense: Expense = {
       id: Math.random().toString(36).substr(2, 9),
       ...data,
+      sessionId: targetSessionId,
       amount: finalAmount,
       date: data.date || new Date().toISOString(),
       carbonFootprint: carbonFootprint?.carbonFootprint
@@ -135,7 +209,7 @@ export default function App() {
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
       
-      const categorySpent = expenses
+      const categorySpent = filteredExpenses
         .filter(e => {
           const d = new Date(e.date);
           return e.categoryId === data.categoryId && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
@@ -170,8 +244,11 @@ export default function App() {
       const doc = new jsPDF();
       doc.text('Expense Summary', 14, 15);
       (doc as any).autoTable({
-        head: [['ID', 'Date', 'Amount', 'Currency', 'Category', 'Description']],
-        body: expenses.map(e => [e.id, e.date, e.amount, e.originalCurrency || baseCurrency, e.categoryId, e.description]),
+        head: [['ID', 'Date', 'Space', 'Amount', 'Currency', 'Category', 'Description']],
+        body: filteredExpenses.map(e => {
+          const s = sessions.find(sess => sess.id === (e.sessionId || defaultSessionId));
+          return [e.id, e.date, s?.name || 'Default', e.amount, e.originalCurrency || baseCurrency, e.categoryId, e.description];
+        }),
         startY: 20,
       });
       doc.save('expenses.pdf');
@@ -183,11 +260,14 @@ export default function App() {
     let fileName = `expenses.${format}`;
 
     if (format === 'json') {
-      dataStr = JSON.stringify(expenses, null, 2);
+      dataStr = JSON.stringify(filteredExpenses, null, 2);
       mimeType = 'application/json';
     } else {
-      const headers = ['ID', 'Date', 'Amount', 'Currency', 'Category', 'Description'];
-      const rows = expenses.map(e => [e.id, e.date, e.amount, e.originalCurrency || baseCurrency, e.categoryId, e.description]);
+      const headers = ['ID', 'Date', 'Space', 'Amount', 'Currency', 'Category', 'Description'];
+      const rows = filteredExpenses.map(e => {
+        const s = sessions.find(sess => sess.id === (e.sessionId || defaultSessionId));
+        return [e.id, e.date, s?.name || 'Default', e.amount, e.originalCurrency || baseCurrency, e.categoryId, e.description];
+      });
       dataStr = [headers, ...rows].map(row => row.join(',')).join('\n');
       mimeType = 'text/csv';
     }
@@ -208,10 +288,8 @@ export default function App() {
   const unratedExpense = React.useMemo(() => {
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-    return expenses.find(e => !e.regretStatus && new Date(e.date) <= threeDaysAgo);
-  }, [expenses]);
-
-  const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
+    return filteredExpenses.find(e => !e.regretStatus && new Date(e.date) <= threeDaysAgo);
+  }, [filteredExpenses]);
 
   const handleVoiceLog = async () => {
     if (isListening) {
@@ -376,7 +454,7 @@ export default function App() {
 
       <main className="mx-auto max-w-2xl px-6 pt-12 pb-32">
         {/* Header */}
-        <header className="mb-12 flex items-center justify-between">
+        <header className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white">
               <Wallet size={20} />
@@ -386,7 +464,19 @@ export default function App() {
               <p className="text-sm text-white/40">Manage your wealth with clarity.</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                triggerHaptic();
+                setIsSessionManagerOpen(true);
+              }}
+              className="flex h-10 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 text-xs text-white/70 backdrop-blur-md transition-all hover:bg-white/10 hover:text-white"
+              title="Manage Spaces"
+            >
+              <Layers size={14} />
+              <span className="hidden sm:inline">Spaces</span>
+            </button>
+
             <button
               onClick={() => setTravelMode(!travelMode)}
               className={cn(
@@ -438,6 +528,15 @@ export default function App() {
           </div>
         </header>
 
+        {/* Space / Session Switcher Bar */}
+        <SessionBar
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          onSelectSession={setActiveSessionId}
+          onOpenManager={() => setIsSessionManagerOpen(true)}
+          expenses={expenses}
+        />
+
         {/* Settings Modal */}
         <AnimatePresence>
           {isSettingsOpen && (
@@ -458,6 +557,22 @@ export default function App() {
                 <h3 className="mb-6 text-xl font-light text-gray-900 dark:text-white">Settings</h3>
                 
                 <div className="space-y-4">
+                  <div>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40 dark:text-gray-400">
+                      Spaces & Contexts
+                    </label>
+                    <button
+                      onClick={() => {
+                        setIsSettingsOpen(false);
+                        setIsSessionManagerOpen(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white hover:bg-white/10 transition-all"
+                    >
+                      <Layers size={16} />
+                      <span>Manage Spaces (College, Home, etc.)</span>
+                    </button>
+                  </div>
+
                   <div>
                     <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/40 dark:text-gray-400">
                       Theme
@@ -593,7 +708,9 @@ export default function App() {
 
         {/* Hero Card */}
         <GlassCard className="mb-12 py-10 text-center">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/40">Total Balance Spent</p>
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/40">
+            {activeSessionId === 'all' ? 'Total Combined Spending' : `Spending • ${sessions.find(s => s.id === activeSessionId)?.name || 'Space'}`}
+          </p>
           <h2 className="mt-2 text-6xl font-extralight tracking-tighter">
             <span className="text-white/40">{currencySymbol}</span>
             {totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -601,13 +718,13 @@ export default function App() {
           <div className="mt-8 flex justify-center gap-8">
             <div className="text-center">
               <p className="text-[10px] uppercase tracking-widest text-white/40">Transactions</p>
-              <p className="text-lg font-light">{expenses.length}</p>
+              <p className="text-lg font-light">{filteredExpenses.length}</p>
             </div>
             <div className="h-10 w-px bg-white/10" />
             <div className="text-center">
               <p className="text-[10px] uppercase tracking-widest text-white/40">Daily Avg</p>
               <p className="text-lg font-light">
-                {currencySymbol}{(totalSpent / (expenses.length || 1)).toFixed(2)}
+                {currencySymbol}{(totalSpent / (filteredExpenses.length || 1)).toFixed(2)}
               </p>
             </div>
           </div>
@@ -657,7 +774,7 @@ export default function App() {
                   )}
                 </AnimatePresence>
                 <SubscriptionAlerts subscriptions={subscriptions} />
-                <Charts expenses={expenses.slice(0, 10)} categories={categories} />
+                <Charts expenses={filteredExpenses.slice(0, 10)} categories={categories} />
                 <div>
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="text-sm font-medium text-white/60">Recent Activity</h3>
@@ -666,8 +783,10 @@ export default function App() {
                     </button>
                   </div>
                   <ExpenseList 
-                    expenses={expenses.slice(0, 5)} 
+                    expenses={filteredExpenses.slice(0, 5)} 
                     categories={categories} 
+                    sessions={sessions}
+                    showSessionBadge={activeSessionId === 'all'}
                     onDelete={deleteExpense} 
                     onRate={handleRateExpense} 
                     onUpdate={updateExpense}
@@ -679,14 +798,18 @@ export default function App() {
             {activeTab === 'history' && (
               <div>
                 <div className="mb-6 flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-white/60">Transaction History</h3>
+                  <h3 className="text-sm font-medium text-white/60">
+                    Transaction History {activeSessionId !== 'all' && `(${sessions.find(s => s.id === activeSessionId)?.name || ''})`}
+                  </h3>
                   <button onClick={() => setActiveTab('dashboard')} className="text-xs text-indigo-400 hover:underline">
                     View Less
                   </button>
                 </div>
                 <ExpenseList 
-                  expenses={expenses} 
+                  expenses={filteredExpenses} 
                   categories={categories} 
+                  sessions={sessions}
+                  showSessionBadge={activeSessionId === 'all'}
                   onDelete={deleteExpense} 
                   onRate={handleRateExpense} 
                   onUpdate={updateExpense}
@@ -699,23 +822,23 @@ export default function App() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-white/60">Monthly Budgets</h3>
                   <BudgetManager 
-                    expenses={expenses}
+                    expenses={filteredExpenses}
                     budgets={budgets} 
                     categories={categories} 
                     onUpdateBudgets={setBudgets} 
                     onUpdateCategories={setCategories} 
                   />
                 </div>
-                <BudgetProgress expenses={expenses} budgets={budgets} categories={categories} />
+                <BudgetProgress expenses={filteredExpenses} budgets={budgets} categories={categories} />
               </div>
             )}
 
             {activeTab === 'stats' && (
               <div className="space-y-8">
                 <h3 className="mb-2 text-sm font-medium text-white/60">Deep Insights</h3>
-                <Charts expenses={expenses} categories={categories} />
-                <WhatIfSimulator expenses={expenses} categories={categories} />
-                <AISpendingSummary expenses={expenses} categories={categories} />
+                <Charts expenses={filteredExpenses} categories={categories} />
+                <WhatIfSimulator expenses={filteredExpenses} categories={categories} />
+                <AISpendingSummary expenses={filteredExpenses} categories={categories} />
               </div>
             )}
 
@@ -732,18 +855,18 @@ export default function App() {
                    </div>
                    <h2 className="text-2xl font-light">Cashflow Visualization</h2>
                 </div>
-                <CashflowSankey expenses={expenses} categories={categories} />
+                <CashflowSankey expenses={filteredExpenses} categories={categories} />
               </motion.div>
             )}
 
             {activeTab === 'regret' && (
               <div className="space-y-6">
-                <RegretInsights expenses={expenses} categories={categories} />
+                <RegretInsights expenses={filteredExpenses} categories={categories} />
               </div>
             )}
             {activeTab === 'subscriptions' && (
               <SubscriptionManager 
-                expenses={expenses} 
+                expenses={filteredExpenses} 
                 subscriptions={subscriptions} 
                 onAddSubscription={addSubscription} 
                 onRemoveSubscription={removeSubscription} 
@@ -755,7 +878,7 @@ export default function App() {
 
       {/* AI Assistant */}
       <AIAssistant 
-        expenses={expenses} 
+        expenses={filteredExpenses} 
         budgets={budgets} 
         categories={categories} 
         onAddExpense={addExpense}
@@ -764,10 +887,28 @@ export default function App() {
       />
 
       {/* Add Expense Button & Form */}
-      <ExpenseForm categories={categories} onAdd={addExpense} />
+      <ExpenseForm 
+        categories={categories} 
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        onAdd={addExpense} 
+      />
       
       {/* Split Bill Modal */}
       <SplitBillModal isOpen={isSplitBillOpen} setIsOpen={setIsSplitBillOpen} />
+
+      {/* Space / Session Manager Modal */}
+      <SessionManagerModal
+        isOpen={isSessionManagerOpen}
+        onClose={() => setIsSessionManagerOpen(false)}
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        onSelectSession={setActiveSessionId}
+        onAddSession={handleAddSession}
+        onUpdateSession={handleUpdateSession}
+        onDeleteSession={handleDeleteSession}
+        expenses={expenses}
+      />
 
       {/* Loading States */}
       {(isScanning || isProcessingVoice) && (

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Expense, CategoryDefinition, RegretStatus } from '../types';
+import { Expense, CategoryDefinition, RegretStatus, Session } from '../types';
 import { GlassCard } from './GlassCard';
 import { format } from 'date-fns';
 import { Trash2, Edit2, ArrowUpDown, Calendar, DollarSign, Tag } from 'lucide-react';
@@ -7,12 +7,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { EditExpenseModal } from './EditExpenseModal';
 import { cn } from '../utils';
+import { getSessionIcon } from '../utils/sessionIcons';
 
 type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc' | 'category';
 
 interface ExpenseListProps {
   expenses: Expense[];
   categories: CategoryDefinition[];
+  sessions?: Session[];
+  showSessionBadge?: boolean;
   onDelete: (id: string) => void;
   onRate: (id: string, status: RegretStatus) => void;
   onUpdate: (id: string, updates: Partial<Expense>) => void;
@@ -21,13 +24,24 @@ interface ExpenseListProps {
 interface ExpenseItemProps {
   expense: Expense;
   category: CategoryDefinition;
+  session?: Session;
+  showSessionBadge?: boolean;
   onDelete: (id: string) => void;
   onRate: (id: string, status: RegretStatus) => void;
   onEdit: (expense: Expense) => void;
   currencySymbol: string;
 }
 
-const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, onRate, onEdit, currencySymbol }) => {
+const ExpenseItem: React.FC<ExpenseItemProps> = ({
+  expense,
+  category,
+  session,
+  showSessionBadge,
+  onDelete,
+  onRate,
+  onEdit,
+  currencySymbol,
+}) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = () => {
@@ -37,16 +51,33 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
     }, 1500);
   };
 
+  const SessionIcon = session ? getSessionIcon(session.icon) : null;
+
   const content = (
     <GlassCard className="group flex items-center justify-between p-4 h-full" hover={!isDeleting}>
       <div className="flex items-center gap-4">
         <div
-          className="h-10 w-10 rounded-full"
+          className="h-10 w-10 rounded-full shrink-0"
           style={{ backgroundColor: `${category.color}40`, border: `1px solid ${category.color}` }}
         />
         <div>
           <div className="flex items-center flex-wrap gap-2">
             <p className="text-sm font-medium text-white">{expense.description}</p>
+            
+            {showSessionBadge && session && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[8px] font-semibold tracking-wider"
+                style={{
+                  backgroundColor: `${session.color}15`,
+                  borderColor: `${session.color}40`,
+                  color: session.color,
+                }}
+              >
+                {SessionIcon && <SessionIcon size={9} />}
+                <span>{session.name}</span>
+              </span>
+            )}
+
             {expense.regretStatus && (
               <span className={`rounded-full border px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
                 expense.regretStatus === 'yes' ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' :
@@ -142,7 +173,15 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, category, onDelete, 
   );
 };
 
-export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, onDelete, onRate, onUpdate }) => {
+export const ExpenseList: React.FC<ExpenseListProps> = ({
+  expenses,
+  categories,
+  sessions = [],
+  showSessionBadge,
+  onDelete,
+  onRate,
+  onUpdate,
+}) => {
   const { currencySymbol } = useCurrency();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
@@ -169,7 +208,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, 
   if (expenses.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-white/40">
-        <p className="text-sm italic">No expenses yet. Start by adding one!</p>
+        <p className="text-sm italic">No expenses yet in this space. Start by adding one!</p>
       </div>
     );
   }
@@ -218,34 +257,38 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, categories, 
       </div>
 
       <div className="space-y-3">
-      <AnimatePresence mode="popLayout">
-        {sortedExpenses.map((expense) => {
-          const category = categories.find(c => c.id === expense.categoryId) || categories[categories.length - 1];
-          return (
-            <ExpenseItem
-              key={expense.id}
-              expense={expense}
-              category={category}
-              onDelete={onDelete}
-              onRate={onRate}
-              onEdit={setEditingExpense}
-              currencySymbol={currencySymbol}
-            />
-          );
-        })}
-      </AnimatePresence>
+        <AnimatePresence mode="popLayout">
+          {sortedExpenses.map((expense) => {
+            const category = categories.find(c => c.id === expense.categoryId) || categories[categories.length - 1];
+            const session = sessions.find(s => s.id === (expense.sessionId || sessions[0]?.id));
+            return (
+              <ExpenseItem
+                key={expense.id}
+                expense={expense}
+                category={category}
+                session={session}
+                showSessionBadge={showSessionBadge}
+                onDelete={onDelete}
+                onRate={onRate}
+                onEdit={setEditingExpense}
+                currencySymbol={currencySymbol}
+              />
+            );
+          })}
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {editingExpense && (
-          <EditExpenseModal 
-            expense={editingExpense}
-            categories={categories}
-            onClose={() => setEditingExpense(null)}
-            onUpdate={onUpdate}
-          />
-        )}
-      </AnimatePresence>
+        <AnimatePresence>
+          {editingExpense && (
+            <EditExpenseModal 
+              expense={editingExpense}
+              categories={categories}
+              sessions={sessions}
+              onClose={() => setEditingExpense(null)}
+              onUpdate={onUpdate}
+            />
+          )}
+        </AnimatePresence>
+      </div>
     </div>
-  </div>
   );
 };

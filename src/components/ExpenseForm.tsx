@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
-import { Plus, X, MessageSquare } from 'lucide-react';
-import { CategoryDefinition, CategoryId } from '../types';
+import { Plus, X, MessageSquare, Layers } from 'lucide-react';
+import { CategoryDefinition, CategoryId, Session } from '../types';
 import { GlassCard } from './GlassCard';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, triggerHaptic } from '../utils';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { parseSMSTransactionWithAI } from '../services/geminiService';
 import { CURRENCIES } from '../constants';
+import { getSessionIcon } from '../utils/sessionIcons';
 
 interface ExpenseFormProps {
   categories: CategoryDefinition[];
-  onAdd: (expense: { amount: number; categoryId: CategoryId; description: string; date?: string; originalAmount?: number; originalCurrency?: string }) => void;
+  sessions?: Session[];
+  activeSessionId?: string;
+  onAdd: (expense: { amount: number; categoryId: CategoryId; description: string; date?: string; sessionId?: string; originalAmount?: number; originalCurrency?: string }) => void;
 }
 
-export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) => {
+export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, sessions = [], activeSessionId, onAdd }) => {
   const { currencySymbol, baseCurrency } = useCurrency();
   const getLocalDateString = () => {
     const d = new Date();
@@ -27,6 +30,9 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
   const [originalAmount, setOriginalAmount] = useState('');
   const [originalCurrency, setOriginalCurrency] = useState(baseCurrency);
   const [categoryId, setCategoryId] = useState<CategoryId>(categories[0]?.id || 'other');
+  const [selectedSessionId, setSelectedSessionId] = useState<string>(
+    activeSessionId && activeSessionId !== 'all' ? activeSessionId : (sessions[0]?.id || 'college')
+  );
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(getLocalDateString());
   const [smsText, setSmsText] = useState('');
@@ -35,8 +41,13 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
   React.useEffect(() => {
     if (isOpen) {
       setDate(getLocalDateString());
+      if (activeSessionId && activeSessionId !== 'all') {
+        setSelectedSessionId(activeSessionId);
+      } else if (sessions.length > 0) {
+        setSelectedSessionId(sessions[0].id);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, activeSessionId, sessions]);
 
   const handleParseSMS = async () => {
     if (!smsText.trim()) return;
@@ -71,6 +82,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
       categoryId,
       description: description || categories.find(c => c.id === categoryId)?.name || 'Expense',
       date: selectedDate.toISOString(),
+      sessionId: selectedSessionId,
       originalAmount: isForeign ? Number(amount) : undefined,
       originalCurrency: isForeign ? originalCurrency : undefined,
     });
@@ -136,6 +148,37 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ categories, onAdd }) =
                     </button>
                   </div>
                   
+                  {/* Space / Session Selector */}
+                  {sessions.length > 0 && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-white/40">
+                        Space / Session
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {sessions.map((sess) => {
+                          const IconComp = getSessionIcon(sess.icon);
+                          const isSelected = selectedSessionId === sess.id;
+                          return (
+                            <button
+                              key={sess.id}
+                              type="button"
+                              onClick={() => setSelectedSessionId(sess.id)}
+                              className={cn(
+                                'flex items-center justify-center gap-1.5 rounded-xl border p-2 text-xs transition-all truncate text-center',
+                                isSelected
+                                  ? 'border-white/40 bg-white/20 text-white font-medium shadow-sm'
+                                  : 'border-white/10 bg-white/5 text-white/60 hover:bg-white/10'
+                              )}
+                            >
+                              <IconComp size={13} style={{ color: isSelected ? '#fff' : sess.color }} />
+                              <span className="truncate">{sess.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-white/40">Amount ({currencySymbol})</label>
                     <div className="flex flex-col sm:flex-row gap-2">
