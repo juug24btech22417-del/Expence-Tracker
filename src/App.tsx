@@ -452,78 +452,79 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <main className="mx-auto max-w-2xl px-6 pt-12 pb-32">
+      <main className="mx-auto max-w-2xl px-4 sm:px-6 pt-6 sm:pt-12 pb-32">
         {/* Header */}
-        <header className="mb-8 flex items-center justify-between">
+        <header className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white shadow-inner backdrop-blur-md">
               <Wallet size={20} />
             </div>
             <div>
-              <h1 className="text-3xl font-light tracking-tight">Glass Ledger</h1>
-              <p className="text-sm text-white/40">Manage your wealth with clarity.</p>
+              <h1 className="text-2xl sm:text-3xl font-light tracking-tight">Glass Ledger</h1>
+              <p className="text-xs sm:text-sm text-white/40">Manage your wealth with clarity.</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
             <button
               onClick={() => {
                 triggerHaptic();
                 setIsSessionManagerOpen(true);
               }}
-              className="flex h-10 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 text-xs text-white/70 backdrop-blur-md transition-all hover:bg-white/10 hover:text-white"
+              className="flex h-9 sm:h-10 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 text-xs text-white/70 backdrop-blur-md transition-all hover:bg-white/10 hover:text-white shrink-0"
               title="Manage Spaces"
             >
               <Layers size={14} />
-              <span className="hidden sm:inline">Spaces</span>
+              <span>Spaces</span>
             </button>
 
             <button
               onClick={() => setTravelMode(!travelMode)}
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-full border transition-all",
+                "flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full border transition-all",
                 travelMode 
                   ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-400" 
                   : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
               )}
               title="Travel Mode (Auto-Convert Foreign Currency)"
             >
-              <Plane size={18} />
+              <Plane size={16} className="sm:size-[18px]" />
             </button>
             <button
               onClick={() => setIsSplitBillOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition-all hover:bg-white/10 hover:text-white"
+              className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition-all hover:bg-white/10 hover:text-white"
               title="Split Bill AI"
             >
-              <Users size={18} />
+              <Users size={16} className="sm:size-[18px]" />
             </button>
             <button
               onClick={handleVoiceLog}
               disabled={isProcessingVoice}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition-all hover:bg-white/10 hover:text-white disabled:opacity-50"
+              className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition-all hover:bg-white/10 hover:text-white disabled:opacity-50"
               title={isListening ? "Stop Recording" : "Voice Log"}
             >
               {isListening ? (
-                <Square size={14} className="animate-pulse text-red-400" fill="currentColor" />
+                <Square size={13} className="animate-pulse text-red-400" fill="currentColor" />
               ) : (
-                <Mic size={18} />
+                <Mic size={16} className="sm:size-[18px]" />
               )}
             </button>
             <button
               onClick={handleReceiptScan}
               disabled={isScanning}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition-all hover:bg-white/10 hover:text-white disabled:opacity-50"
+              className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition-all hover:bg-white/10 hover:text-white disabled:opacity-50"
+              title="Scan Receipt"
             >
-              <Camera size={18} className={isScanning ? 'animate-pulse text-emerald-400' : ''} />
+              <Camera size={16} className={cn('sm:size-[18px]', isScanning ? 'animate-pulse text-emerald-400' : '')} />
             </button>
             <button
               onClick={() => {
                 triggerHaptic();
                 setIsSettingsOpen(true);
               }}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition-all hover:bg-white/10 hover:text-white"
+              className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/60 transition-all hover:bg-white/10 hover:text-white"
               title="Settings"
             >
-              <Settings size={18} />
+              <Settings size={16} className="sm:size-[18px]" />
             </button>
           </div>
         </header>
