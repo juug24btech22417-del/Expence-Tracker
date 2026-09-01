@@ -115,20 +115,24 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({
             </p>
           )}
         </div>
-        <div className={`flex items-center gap-2 transition-opacity ${isDeleting ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}>
+        <div className={`flex items-center gap-1 sm:gap-2 transition-opacity ${isDeleting ? 'opacity-0' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'}`}>
           <button
             onClick={() => onEdit(expense)}
             disabled={isDeleting}
-            className="text-white/40 hover:text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white/50 hover:bg-white/10 hover:text-white active:scale-95 transition-all"
+            title="Edit Expense"
+            aria-label="Edit Expense"
           >
-            <Edit2 size={16} />
+            <Edit2 size={15} />
           </button>
           <button
             onClick={handleDelete}
             disabled={isDeleting}
-            className="text-white/40 hover:text-red-400"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white/50 hover:bg-red-500/10 hover:text-red-400 active:scale-95 transition-all"
+            title="Delete Expense"
+            aria-label="Delete Expense"
           >
-            <Trash2 size={16} />
+            <Trash2 size={15} />
           </button>
         </div>
       </div>
