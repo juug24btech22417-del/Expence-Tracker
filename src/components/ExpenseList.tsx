@@ -8,6 +8,7 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { EditExpenseModal } from './EditExpenseModal';
 import { cn } from '../utils';
 import { getSessionIcon } from '../utils/sessionIcons';
+import { getCategoryIcon } from '../utils/categoryIcons';
 
 type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc' | 'category';
 
@@ -52,14 +53,22 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({
   };
 
   const SessionIcon = session ? getSessionIcon(session.icon) : null;
+  const CategoryIcon = getCategoryIcon(category.id);
 
   const content = (
     <GlassCard className="group flex items-center justify-between p-4 h-full" hover={!isDeleting}>
       <div className="flex items-center gap-4">
         <div
-          className="h-10 w-10 rounded-full shrink-0"
-          style={{ backgroundColor: `${category.color}40`, border: `1px solid ${category.color}` }}
-        />
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-sm backdrop-blur-sm transition-transform group-hover:scale-105"
+          style={{ 
+            backgroundColor: `${category.color}25`, 
+            border: `1px solid ${category.color}60`,
+            color: category.color 
+          }}
+          title={category.name}
+        >
+          <CategoryIcon size={18} />
+        </div>
         <div>
           <div className="flex items-center flex-wrap gap-2">
             <p className="text-sm font-medium text-white">{expense.description}</p>

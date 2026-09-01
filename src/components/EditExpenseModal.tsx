@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { getSessionIcon } from '../utils/sessionIcons';
+import { getCategoryIcon } from '../utils/categoryIcons';
 
 interface EditExpenseModalProps {
   expense: Expense;
@@ -117,19 +118,26 @@ export const EditExpenseModal: React.FC<EditExpenseModalProps> = ({
             <div>
               <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-white/40">Category</label>
               <div className="grid grid-cols-3 gap-2">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setCategoryId(cat.id)}
-                    className={cn(
-                      'rounded-lg border border-white/10 p-2 text-xs transition-all truncate text-center',
-                      categoryId === cat.id ? 'bg-white text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'
-                    )}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
+                {categories.map((cat) => {
+                  const Icon = getCategoryIcon(cat.id);
+                  const isSelected = categoryId === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setCategoryId(cat.id)}
+                      className={cn(
+                        'flex items-center justify-center gap-1.5 rounded-lg border p-2 text-xs transition-all truncate text-center',
+                        isSelected 
+                          ? 'bg-white text-black border-white font-medium shadow-md' 
+                          : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
+                      )}
+                    >
+                      <Icon size={13} style={{ color: isSelected ? '#000' : cat.color }} />
+                      <span className="truncate">{cat.name}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

@@ -5,6 +5,7 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { motion } from 'motion/react';
 import { TrendingUp, Sparkles, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { format, subMonths } from 'date-fns';
+import { getCategoryIcon } from '../utils/categoryIcons';
 
 interface TopCategoriesSummaryProps {
   expenses: Expense[];
@@ -148,6 +149,8 @@ export const TopCategoriesSummary: React.FC<TopCategoriesSummaryProps> = ({ expe
               'text-amber-600 dark:text-amber-500 border-amber-600/30 bg-amber-600/10',
             ];
 
+            const CategoryIcon = getCategoryIcon(item.category.id);
+
             return (
               <div key={item.category.id} className="group">
                 <div className="flex items-center justify-between text-xs mb-1.5">
@@ -158,9 +161,15 @@ export const TopCategoriesSummary: React.FC<TopCategoriesSummaryProps> = ({ expe
                       #{index + 1}
                     </span>
                     <div
-                      className="h-2.5 w-2.5 rounded-full shrink-0 shadow-sm"
-                      style={{ backgroundColor: item.category.color }}
-                    />
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border"
+                      style={{ 
+                        backgroundColor: `${item.category.color}20`,
+                        borderColor: `${item.category.color}40`,
+                        color: item.category.color 
+                      }}
+                    >
+                      <CategoryIcon size={11} />
+                    </div>
                     <span className="font-medium text-white/90 truncate">
                       {item.category.name}
                     </span>
