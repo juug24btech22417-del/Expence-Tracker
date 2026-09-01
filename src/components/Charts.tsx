@@ -4,6 +4,7 @@ import { Expense, CategoryDefinition } from '../types';
 import { GlassCard } from './GlassCard';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { calculateSpendingByCategory, calculateDailySpending } from '../utils/spendingUtils';
+import { getCategoryIcon } from '../utils/categoryIcons';
 
 interface ChartsProps {
   expenses: Expense[];
@@ -14,6 +15,44 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
   const { currencySymbol } = useCurrency();
   const pieData = calculateSpendingByCategory(expenses, categories);
   const dailyData = calculateDailySpending(expenses, 7);
+
+  const renderCustomLegend = (props: any) => {
+    const { payload } = props;
+    if (!payload || !payload.length) return null;
+
+    return (
+      <div className="flex flex-wrap justify-center items-center gap-2 pt-3">
+        {payload.map((entry: any, index: number) => {
+          const categoryName = entry.value;
+          const cat = categories.find((c) => c.name === categoryName) || {
+            id: categoryName.toLowerCase(),
+            name: categoryName,
+            color: entry.color || '#94a3b8'
+          };
+          const Icon = getCategoryIcon(cat.id);
+
+          return (
+            <div
+              key={`legend-item-${index}`}
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] py-1 pl-1.5 pr-2.5 text-xs text-white/80 shadow-sm backdrop-blur-md transition-all hover:bg-white/10 hover:border-white/20"
+            >
+              <div
+                className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full"
+                style={{
+                  backgroundColor: `${entry.color}30`,
+                  border: `1px solid ${entry.color}`,
+                  color: entry.color
+                }}
+              >
+                <Icon size={10} />
+              </div>
+              <span className="text-[11px] font-medium text-white/90">{categoryName}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -50,7 +89,7 @@ export const Charts: React.FC<ChartsProps> = ({ expenses, categories }) => {
                 return null;
               }}
             />
-            <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+            <Legend content={renderCustomLegend} />
           </PieChart>
         </ResponsiveContainer>
       </GlassCard>
