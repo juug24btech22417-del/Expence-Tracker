@@ -16,17 +16,17 @@ interface WavesProps {
 }
 
 export const Waves: React.FC<WavesProps> = ({
-  lineColor = '#fcf7fa',
+  lineColor = 'rgba(255, 255, 255, 0.15)',
   backgroundColor = 'transparent',
-  waveSpeedX = 0.02,
-  waveSpeedY = 0.01,
-  waveAmpX = 40,
-  waveAmpY = 20,
-  friction = 0.9,
-  tension = 0.01,
-  maxCursorMove = 200,
-  xGap = 12,
-  yGap = 36,
+  waveSpeedX = 0.015,
+  waveSpeedY = 0.008,
+  waveAmpX = 35,
+  waveAmpY = 25,
+  friction = 0.92,
+  tension = 0.012,
+  maxCursorMove = 160,
+  xGap = 24,
+  yGap = 44,
   className,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -43,6 +43,8 @@ export const Waves: React.FC<WavesProps> = ({
     let points: any[] = [];
     let mouse = { x: -1000, y: -1000 };
 
+    const bleed = 120; // Generous bleed margin past screen borders so ends never appear broken or cut off
+
     const init = () => {
       width = canvas.offsetWidth;
       height = canvas.offsetHeight;
@@ -51,9 +53,9 @@ export const Waves: React.FC<WavesProps> = ({
       ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
       points = [];
-      for (let y = 0; y <= height + yGap; y += yGap) {
+      for (let y = -bleed; y <= height + bleed; y += yGap) {
         const row = [];
-        for (let x = 0; x <= width + xGap; x += xGap) {
+        for (let x = -bleed; x <= width + bleed; x += xGap) {
           row.push({
             x,
             y,
@@ -96,50 +98,68 @@ export const Waves: React.FC<WavesProps> = ({
 
       time += 1;
 
-      ctx.beginPath();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.strokeStyle = lineColor;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.1;
 
       for (let r = 0; r < points.length; r++) {
-        for (let c = 0; c < points[r].length; c++) {
-          const p = points[r][c];
+        const row = points[r];
+        if (row.length < 2) continue;
 
-          // Wave movement
-          const dx = Math.sin(time * waveSpeedX + p.originY * 0.05) * waveAmpX;
-          const dy = Math.cos(time * waveSpeedY + p.originX * 0.05) * waveAmpY;
+        for (let c = 0; c < row.length; c++) {
+          const p = row[c];
+
+          // Harmonic multi-frequency waves for natural, elegant flowing curves
+          const dx =
+            Math.sin(time * waveSpeedX + p.originY * 0.008) * waveAmpX +
+            Math.cos(time * (waveSpeedX * 0.6) + p.originX * 0.004) * (waveAmpX * 0.35);
+
+          const dy =
+            Math.cos(time * waveSpeedY + p.originX * 0.007) * waveAmpY +
+            Math.sin(time * (waveSpeedY * 0.8) + p.originY * 0.005) * (waveAmpY * 0.4);
 
           const targetX = p.originX + dx;
           const targetY = p.originY + dy;
 
-          // Mouse interaction
+          // Smooth interactive cursor deformation with inverse distance falloff
           const distX = mouse.x - p.x;
           const distY = mouse.y - p.y;
           const dist = Math.sqrt(distX * distX + distY * distY);
 
           if (dist < maxCursorMove) {
-            const force = (maxCursorMove - dist) / maxCursorMove;
-            p.vx -= (distX / dist) * force * 5;
-            p.vy -= (distY / dist) * force * 5;
+            const force = Math.cos((dist / maxCursorMove) * (Math.PI / 2));
+            p.vx -= (distX / (dist || 1)) * force * 3.5;
+            p.vy -= (distY / (dist || 1)) * force * 3.5;
           }
 
-          // Spring physics
+          // Elastic spring physics
           p.vx += (targetX - p.x) * tension;
           p.vy += (targetY - p.y) * tension;
-          
+
           p.vx *= friction;
           p.vy *= friction;
 
           p.x += p.vx;
           p.y += p.vy;
-
-          if (c === 0) {
-            ctx.moveTo(p.x, p.y);
-          } else {
-            ctx.lineTo(p.x, p.y);
-          }
         }
+
+        // Draw fluid quadratic Bézier spline through midpoints for silky curves
+        ctx.beginPath();
+        ctx.moveTo(row[0].x, row[0].y);
+
+        for (let c = 0; c < row.length - 1; c++) {
+          const current = row[c];
+          const next = row[c + 1];
+          const midX = (current.x + next.x) / 2;
+          const midY = (current.y + next.y) / 2;
+          ctx.quadraticCurveTo(current.x, current.y, midX, midY);
+        }
+
+        const last = row[row.length - 1];
+        ctx.lineTo(last.x, last.y);
+        ctx.stroke();
       }
-      ctx.stroke();
 
       animationFrameId = requestAnimationFrame(render);
     };
